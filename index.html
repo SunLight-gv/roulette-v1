@@ -12,73 +12,87 @@
     --accent: #ff5a5a;
     --accent2: #ff9a4a;
     --glass: rgba(255,255,255,0.03);
-    --radius: 14px;
-    --shadow: 0 8px 30px rgba(2,6,23,0.6);
+    --radius: 12px;
+    --shadow: 0 8px 24px rgba(2,6,23,0.5);
     --glass-2: rgba(255,255,255,0.02);
     --max-width: 1100px;
-    --safe-pad: 16px;
+    --safe-pad: 12px;
   }
   * { box-sizing: border-box; }
   html, body { height: 100%; margin: 0; background: linear-gradient(180deg, #081023 0%, #071423 60%); font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; color: #e6eef6; overflow: hidden; }
-  .container { max-width: var(--max-width); margin: 0 auto; height: 100%; display: flex; flex-direction: column; padding: calc(var(--safe-pad) + 4px); }
-  header { display: flex; align-items: center; justify-content: space-between; padding: 14px; border-radius: 12px; background: linear-gradient(90deg, var(--accent), var(--accent2)); box-shadow: var(--shadow); position: relative; z-index: 5; }
-  header .title { font-size: 20px; font-weight: 800; letter-spacing: 0.6px; }
-  .balance-banner { background: rgba(255,255,255,0.12); padding: 8px 12px; border-radius: 12px; text-align: right; min-width: 160px; }
-  .balance-label { font-size: 12px; color: rgba(255,255,255,0.9); opacity: 0.95; }
-  .balance { font-size: 20px; font-weight: 800; margin-top: 2px; }
-  .topnav { display: flex; gap: 8px; margin-top: 12px; }
-  .tab-btn { flex: 1; padding: 10px 12px; border-radius: 12px; background: var(--glass); border: 1px solid rgba(255,255,255,0.03); font-weight: 700; color: var(--muted); cursor: pointer; transition: all .18s; }
-  .tab-btn:hover { transform: translateY(-3px); box-shadow: 0 6px 18px rgba(0,0,0,0.45); }
-  .tab-btn.active { background: linear-gradient(90deg, var(--accent), var(--accent2)); color: #fff; box-shadow: 0 8px 24px rgba(255,90,90,0.12); }
-  main { flex: 1; margin-top: 12px; overflow: auto; padding-bottom: 18px; }
-  .layout { display: grid; grid-template-columns: 1fr 420px; gap: 14px; max-width: var(--max-width); margin: 0 auto; }
-  .card { background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border-radius: 14px; padding: 14px; border: 1px solid rgba(255,255,255,0.03); box-shadow: var(--shadow); }
-  .muted { color: var(--muted); font-size: 13px; }
-  h2 { margin: 0 0 8px 0; font-size: 18px; }
-  .roulette-area { display: flex; flex-direction: column; gap: 12px; }
-  .bet-row { display: flex; gap: 8px; align-items: center; }
-  .input { background: var(--glass); border: 1px solid rgba(255,255,255,0.03); padding: 10px; border-radius: 10px; color: #eaf4ff; font-weight: 600; width: 100%; }
-  .btn { padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.04); cursor: pointer; background: transparent; color: #fff; font-weight: 800; }
-  .btn.primary { background: linear-gradient(90deg, var(--accent), var(--accent2)); box-shadow: 0 8px 24px rgba(255,90,90,0.12); border: none; }
+  .container { max-width: var(--max-width); margin: 0 auto; height: 100%; display: flex; flex-direction: column; padding: var(--safe-pad); }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 12px; border-radius: var(--radius); background: linear-gradient(90deg, var(--accent), var(--accent2)); box-shadow: var(--shadow); position: relative; z-index: 5; }
+  header .title { font-size: 18px; font-weight: 800; letter-spacing: 0.5px; }
+  .balance-banner { background: rgba(255,255,255,0.15); padding: 8px 12px; border-radius: 10px; text-align: right; }
+  .balance-label { font-size: 11px; color: rgba(255,255,255,0.9); opacity: 0.95; }
+  .balance { font-size: 18px; font-weight: 800; margin-top: 2px; }
+  .topnav { display: flex; gap: 6px; margin-top: 8px; }
+  .tab-btn { flex: 1; padding: 8px; border-radius: 10px; background: var(--glass); border: 1px solid rgba(255,255,255,0.03); font-weight: 700; font-size: 14px; color: var(--muted); cursor: pointer; transition: all .2s; }
+  .tab-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+  .tab-btn.active { background: linear-gradient(90deg, var(--accent), var(--accent2)); color: #fff; box-shadow: 0 6px 18px rgba(255,90,90,0.15); }
+  main { flex: 1; margin-top: 8px; overflow: auto; padding-bottom: 16px; }
+  .layout { display: grid; grid-template-columns: 1fr 400px; gap: 12px; max-width: var(--max-width); margin: 0 auto; }
+  .card { background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border-radius: var(--radius); padding: 12px; border: 1px solid rgba(255,255,255,0.03); box-shadow: var(--shadow); }
+  .muted { color: var(--muted); font-size: 12px; }
+  h2 { margin: 0 0 6px 0; font-size: 16px; }
+  .roulette-area { display: flex; flex-direction: column; gap: 10px; }
+  .bet-row { display: flex; gap: 6px; align-items: center; }
+  .input { background: var(--glass); border: 1px solid rgba(255,255,255,0.03); padding: 8px; border-radius: 8px; color: #eaf4ff; font-weight: 600; width: 100%; font-size: 14px; }
+  .btn { padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.04); cursor: pointer; background: transparent; color: #fff; font-weight: 800; font-size: 14px; }
+  .btn.primary { background: linear-gradient(90deg, var(--accent), var(--accent2)); box-shadow: 0 6px 18px rgba(255,90,90,0.15); border: none; }
   .btn.ghost { background: transparent; border: 1px solid rgba(255,255,255,0.06); color: var(--muted); }
-  .drum-wrap { position: relative; height: 140px; border-radius: 12px; overflow: hidden; border: 2px solid rgba(255,255,255,0.04); background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.2)); }
-  .drum-strip { display: flex; align-items: center; position: absolute; left: 0; top: 0; height: 100%; transition: transform 2.6s cubic-bezier(.17,.67,.83,.67); width: max-content; }
-  .drum-item { min-width: 140px; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 34px; border-right: 1px solid rgba(255,255,255,0.02); padding: 8px; }
-  .drum-item .badge { font-size: 14px; margin-top: 8px; color: var(--muted); }
-  .marker { position: absolute; left: 50%; top: 6px; transform: translateX(-50%); width: 0; height: 0; border-left: 12px solid transparent; border-right: 12px solid transparent; border-top: 18px solid rgba(255,255,255,0.06); }
-  .result-pointer { position: absolute; left: 50%; top: 44%; transform: translateX(-50%) translateY(-50%); pointer-events: none; }
-  .side { display: flex; flex-direction: column; gap: 12px; }
-  .history { max-height: 220px; overflow: auto; padding: 8px; display: flex; flex-direction: column; gap: 8px; }
-  .hist-item { background: var(--glass-2); padding: 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.02); font-size: 13px; color: var(--muted); }
+  .drum-wrap { position: relative; height: 120px; border-radius: 10px; overflow: hidden; border: 2px solid rgba(255,255,255,0.05); background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(0,0,0,0.3)); }
+  .drum-strip { display: flex; align-items: center; position: absolute; left: 0; top: 0; height: 100%; transition: transform 2.4s cubic-bezier(.2,.7,.8,.6); width: max-content; }
+  .drum-item { min-width: 100px; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 28px; border-right: 1px solid rgba(255,255,255,0.03); padding: 6px; background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.1)); }
+  .drum-item .badge { font-size: 12px; margin-top: 6px; color: var(--muted); }
+  .marker { position: absolute; left: 50%; top: 4px; transform: translateX(-50%); width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-top: 16px solid rgba(255,255,255,0.08); }
+  .result-pointer { position: absolute; left: 50%; top: 50%; transform: translateX(-50%) translateY(-50%); pointer-events: none; }
+  .side { display: flex; flex-direction: column; gap: 10px; }
+  .history { max-height: 200px; overflow: auto; padding: 6px; display: flex; flex-direction: column; gap: 6px; }
+  .hist-item { background: var(--glass-2); padding: 6px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.02); font-size: 12px; color: var(--muted); }
   #welcome { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: linear-gradient(180deg, rgba(2,6,23,0.65), rgba(2,6,23,0.85)); z-index: 200; }
-  .welcome-card { width: min(880px, 95%); background: linear-gradient(180deg, #072035, #071426); border-radius: 16px; padding: 22px; border: 1px solid rgba(255,255,255,0.04); box-shadow: 0 24px 80px rgba(2,6,23,0.8); display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
-  .welcome-left { flex: 1; min-width: 260px; }
-  .logo-big { font-size: 42px; font-weight: 900; margin-bottom: 8px; }
-  .welcome-right { width: 360px; min-width: 260px; }
-  .progress { height: 8px; background: rgba(255,255,255,0.03); border-radius: 8px; overflow: hidden; margin-top: 12px; }
-  .progress > i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width 2s ease; }
-  .rules { margin-top: 12px; font-size: 14px; color: var(--muted); line-height: 1.4; }
-  .welcome-cta { display: flex; gap: 8px; margin-top: 16px; }
+  .welcome-card { width: min(800px, 95%); background: linear-gradient(180deg, #072035, #071426); border-radius: 14px; padding: 18px; border: 1px solid rgba(255,255,255,0.04); box-shadow: 0 20px 60px rgba(2,6,23,0.8); display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+  .welcome-left { flex: 1; min-width: 240px; }
+  .logo-big { font-size: 36px; font-weight: 900; margin-bottom: 6px; }
+  .welcome-right { width: 320px; min-width: 240px; }
+  .progress { height: 6px; background: rgba(255,255,255,0.03); border-radius: 6px; overflow: hidden; margin-top: 10px; }
+  .progress > i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width 1.8s ease; }
+  .rules { margin-top: 10px; font-size: 13px; color: var(--muted); line-height: 1.4; }
+  .welcome-cta { display: flex; gap: 6px; margin-top: 14px; }
   .modal { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(2,6,23,0.6); z-index: 300; }
-  .modal-card { background: linear-gradient(180deg, #0c1a29, #081021); padding: 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.04); width: 320px; text-align: center; box-shadow: 0 20px 60px rgba(2,6,23,0.8); }
-  .prize-icon { font-size: 56px; }
-  .prize-name { font-weight: 900; margin-top: 8px; }
-  .prize-rare { margin-top: 6px; font-size: 13px; color: var(--muted); }
-  .sell-row { display: flex; gap: 8px; margin-top: 14px; justify-content: center; }
-  .rarity-chip { display: inline-block; padding: 6px 10px; border-radius: 999px; font-weight: 800; font-size: 12px; }
+  .modal-card { background: linear-gradient(180deg, #0c1a29, #081021); padding: 18px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.04); width: 300px; text-align: center; box-shadow: 0 18px 50px rgba(2,6,23,0.8); }
+  .prize-icon { font-size: 48px; }
+  .prize-name { font-weight: 900; margin-top: 6px; font-size: 16px; }
+  .prize-rare { margin-top: 4px; font-size: 12px; color: var(--muted); }
+  .sell-row { display: flex; gap: 6px; margin-top: 12px; justify-content: center; }
+  .rarity-chip { display: inline-block; padding: 5px 8px; border-radius: 999px; font-weight: 800; font-size: 11px; }
   .r-common { background: rgba(255,255,255,0.04); color: #dbe8ff; }
   .r-rare { background: linear-gradient(90deg, #6bd3ff, #5ab2ff); color: #04243a; }
   .r-epic { background: linear-gradient(90deg, #b98bff, #ff7ad1); color: #240133; }
   .r-legend { background: linear-gradient(90deg, #ffd36b, #ff9a4a); color: #2a1300; }
-  .note { font-size: 12px; color: var(--muted); }
-  .flex { display: flex; gap: 8px; align-items: center; }
+  .note { font-size: 11px; color: var(--muted); }
+  .flex { display: flex; gap: 6px; align-items: center; }
   #rouletteTab, #withdrawTab, #depositTab, #liveTab { display: none; }
   #rouletteTab.active, #withdrawTab.active, #depositTab.active, #liveTab.active { display: block; }
   @media (max-width: 720px) {
-    .layout { grid-template-columns: 1fr; padding: 0 6px; }
-    header, .topnav { border-radius: 12px; }
-    .balance-banner { min-width: unset; }
-    .side, .history-card, #liveTab { display: none !important; }
+    .container { padding: 8px; }
+    .layout { grid-template-columns: 1fr; }
+    header { padding: 10px; }
+    header .title { font-size: 16px; }
+    .balance-banner { padding: 6px 10px; }
+    .balance-label { font-size: 10px; }
+    .balance { font-size: 16px; }
+    .topnav { gap: 4px; }
+    .tab-btn { padding: 6px; font-size: 12px; border-radius: 8px; }
+    .card { padding: 10px; }
+    h2 { font-size: 14px; }
+    .bet-row { gap: 4px; }
+    .input { padding: 6px; font-size: 12px; }
+    .btn { padding: 6px 8px; font-size: 12px; }
+    .drum-wrap { height: 100px; }
+    .drum-item { min-width: 80px; font-size: 24px; }
+    .drum-item .badge { font-size: 10px; margin-top: 4px; }
+    .side, .history-card { display: none !important; }
   }
 </style>
 </head>
@@ -91,11 +105,11 @@
         <div class="balance" id="balance">0 ★</div>
       </div>
     </header>
-    <div class="topnav" style="margin-top:8px">
+    <div class="topnav">
       <button class="tab-btn active" data-tab="roulette">Рулетка</button>
       <button class="tab-btn" data-tab="withdraw">Вывод</button>
       <button class="tab-btn" data-tab="deposit">Пополнение</button>
-      <button class="tab-btn" data-tab="live" id="liveTabBtn">Live</button>
+      <button class="tab-btn" data-tab="live">Live</button>
     </div>
     <main>
       <div class="layout">
@@ -107,7 +121,7 @@
                 <div class="muted">Выбери ставку, нажми «Крутить» и смотри результат.</div>
               </div>
             </div>
-            <div style="height:12px"></div>
+            <div style="height:10px"></div>
             <div class="roulette-area">
               <div class="bet-row">
                 <input id="betAmount" class="input" type="number" placeholder="Сумма ставки (★)" value="50" />
@@ -118,56 +132,56 @@
                 <div class="marker" aria-hidden="true"></div>
                 <div class="drum-strip" id="drumStrip" style="transform:translateX(0)"></div>
                 <div class="result-pointer" aria-hidden="true">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" style="filter:drop-shadow(0 6px 14px rgba(0,0,0,0.6))">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="filter:drop-shadow(0 4px 12px rgba(0,0,0,0.6))">
                     <path d="M12 2L15 9H9L12 2Z" fill="#fff" opacity="0.9"/>
-                    <circle cx="12" cy="16" r="6" fill="#fff" opacity="0.06"/>
+                    <circle cx="12" cy="16" r="5" fill="#fff" opacity="0.08"/>
                   </svg>
                 </div>
               </div>
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
                 <div class="flex"><div class="note">Шанс победы ~55%.</div></div>
-                <div class="muted">Результат: <span id="spinResult" style="font-weight:800;margin-left:8px">—</span></div>
+                <div class="muted">Результат: <span id="spinResult" style="font-weight:800;margin-left:6px">—</span></div>
               </div>
             </div>
           </div>
-          <div class="card history-card" style="margin-top:12px">
+          <div class="card history-card" style="margin-top:10px">
             <h2>История</h2>
             <div class="history" id="history"></div>
           </div>
           <div class="card" id="withdrawTab">
             <h2>Вывод</h2>
             <div class="muted">Минимум для вывода — 2000 ★</div>
-            <div style="margin-top:12px">
+            <div style="margin-top:10px">
               <button class="btn primary" id="requestWithdraw">Запросить вывод</button>
             </div>
           </div>
           <div class="card" id="depositTab">
             <h2>Пополнение</h2>
             <div class="muted">1 ₽ = 0.67 ★</div>
-            <div style="margin-top:12px">
+            <div style="margin-top:10px">
               <input id="depositAmount" class="input" type="number" placeholder="Сумма в ₽" value="100" />
               <button class="btn primary" id="confirmDeposit">Пополнить</button>
             </div>
           </div>
           <div class="card" id="liveTab">
             <h2>Live</h2>
-            <div id="liveArea" style="min-height:80px;display:flex;flex-direction:column;gap:6px"></div>
+            <div id="liveArea" style="min-height:80px;display:flex;flex-direction:column;gap:4px"></div>
           </div>
         </div>
         <aside class="side">
           <div class="card">
             <h2>Баланс</h2>
-            <div style="display:flex;gap:8px;margin-top:10px">
+            <div style="display:flex;gap:6px;margin-top:8px">
               <div style="flex:1">
                 <div class="muted">Твой баланс</div>
-                <div style="font-weight:900;font-size:22px;margin-top:6px" id="balanceBig">0 ★</div>
-                <div class="note" style="margin-top:6px">1 ₽ = 0.67 ★</div>
+                <div style="font-weight:900;font-size:20px;margin-top:4px" id="balanceBig">0 ★</div>
+                <div class="note" style="margin-top:4px">1 ₽ = 0.67 ★</div>
               </div>
             </div>
           </div>
           <div class="card">
             <h2>Список призов</h2>
-            <ul id="prizeList" style="margin:8px 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px"></ul>
+            <ul id="prizeList" style="margin:6px 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px"></ul>
           </div>
         </aside>
       </div>
@@ -177,7 +191,7 @@
     <div class="welcome-card">
       <div class="welcome-left">
         <div class="logo-big">🎰 Mini Casino</div>
-        <div style="font-size:16px;font-weight:700">Добро пожаловать!</div>
+        <div style="font-size:14px;font-weight:700">Добро пожаловать!</div>
         <div class="rules">
           <p><b>Привет!</b> Крути барабан, получай призы и продавай их за звёзды или рубли.</p>
           <p>Нажми «Начать» для включения звука.</p>
@@ -193,9 +207,9 @@
           <div class="muted" id="loadPercent">0%</div>
         </div>
         <div class="progress"><i id="progressBar"></i></div>
-        <div style="margin-top:14px">
+        <div style="margin-top:12px">
           <div class="muted">Правила</div>
-          <ol class="rules" style="margin-top:8px">
+          <ol class="rules" style="margin-top:6px">
             <li>Минимум для вывода — 2000 ★.</li>
             <li>1 ₽ = 0.67 ★ при пополнении.</li>
             <li>Каждый приз имеет редкость и цену.</li>
@@ -210,7 +224,7 @@
       <div class="prize-icon" id="modalIcon">⭐</div>
       <div class="prize-name" id="modalName">Название</div>
       <div id="modalRarity" class="prize-rare">Редкость</div>
-      <div style="margin-top:10px" id="modalDesc" class="muted">Описание</div>
+      <div style="margin-top:8px" id="modalDesc" class="muted">Описание</div>
       <div class="sell-row">
         <button id="sellBtn" class="btn primary">Продать</button>
         <button id="keepBtn" class="btn">Оставить</button>
@@ -242,7 +256,6 @@ let isSpinning = false;
 const drumStrip = document.getElementById('drumStrip');
 const historyEl = document.getElementById('history');
 const liveArea = document.getElementById('liveArea');
-const liveTabBtn = document.getElementById('liveTabBtn');
 function isMobileDevice() {
   return window.innerWidth <= 720 || /Mobi|Android|iPhone|iPad|iPod/.test(navigator.userAgent);
 }
@@ -252,6 +265,7 @@ function updateBalanceUI() {
   localStorage.setItem('balance', balance);
 }
 function buildPrizeList() {
+  if (isMobileDevice()) return;
   const ul = document.getElementById('prizeList');
   ul.innerHTML = '';
   PRIZES.forEach(p => {
@@ -259,19 +273,19 @@ function buildPrizeList() {
     li.style.display = 'flex';
     li.style.justifyContent = 'space-between';
     li.style.alignItems = 'center';
-    li.style.padding = '8px';
-    li.style.borderRadius = '10px';
+    li.style.padding = '6px';
+    li.style.borderRadius = '8px';
     li.style.background = 'rgba(255,255,255,0.02)';
-    li.innerHTML = `<div style="display:flex;align-items:center;gap:10px">
-      <div style="font-size:20px">${p.icon}</div>
+    li.innerHTML = `<div style="display:flex;align-items:center;gap:8px">
+      <div style="font-size:18px">${p.icon}</div>
       <div>
         <div style="font-weight:800">${p.name}</div>
-        <div style="font-size:12px;color:var(--muted)">${p.desc}</div>
+        <div style="font-size:11px;color:var(--muted)">${p.desc}</div>
       </div>
     </div>
     <div style="text-align:right">
       <div style="font-weight:800">${p.sellStars.toFixed(2)}★</div>
-      <div style="font-size:12px;color:var(--muted)">${p.sellRub}₽</div>
+      <div style="font-size:11px;color:var(--muted)">${p.sellRub}₽</div>
     </div>`;
     ul.appendChild(li);
   });
@@ -279,18 +293,23 @@ function buildPrizeList() {
 function populateDrum() {
   drumStrip.innerHTML = '';
   drumItems = [];
-  for (let i = 0; i < 36; i++) {
+  const itemWidth = isMobileDevice() ? 80 : 100;
+  const drumWrap = document.querySelector('.drum-wrap');
+  const wrapWidth = drumWrap.offsetWidth;
+  const numItems = Math.ceil(wrapWidth / itemWidth) + 20;
+  for (let i = 0; i < numItems; i++) {
     const p = PRIZES[Math.floor(Math.random() * PRIZES.length)];
     drumItems.push(p);
     const d = document.createElement('div');
     d.className = 'drum-item';
     d.dataset.idx = i;
     d.style.textAlign = 'center';
-    d.innerHTML = `<div style="font-size:38px">${p.icon}</div>
+    d.style.minWidth = `${itemWidth}px`;
+    d.innerHTML = `<div style="font-size:${isMobileDevice() ? '24px' : '28px'}">${p.icon}</div>
                    <div class="badge">${p.marker} ${p.name}</div>`;
     drumStrip.appendChild(d);
   }
-  drumStrip.style.width = `${drumItems.length * 140}px`;
+  drumStrip.style.width = `${drumItems.length * itemWidth}px`;
 }
 let drumItems = [];
 populateDrum();
@@ -336,13 +355,13 @@ function spin(fast = false) {
   const total = drumItems.length;
   const targetIdx = Math.floor(Math.random() * total);
   const loops = fast ? 3 : 6;
-  const itemWidth = 140;
+  const itemWidth = isMobileDevice() ? 80 : 100;
   const drumWrap = document.querySelector('.drum-wrap');
   const wrapWidth = drumWrap.offsetWidth;
   const centerX = wrapWidth / 2;
   const translateTarget = -(targetIdx * itemWidth) + (centerX - itemWidth / 2);
   const totalTranslate = translateTarget - (loops * total * itemWidth * 0.5);
-  drumStrip.style.transition = `transform ${fast ? 1.2 : 2.6}s cubic-bezier(.17,.67,.83,.67)`;
+  drumStrip.style.transition = `transform ${fast ? 1.2 : 2.4}s cubic-bezier(.2,.7,.8,.6)`;
   requestAnimationFrame(() => {
     drumStrip.style.transform = `translateX(${totalTranslate}px)`;
   });
@@ -364,7 +383,7 @@ function spin(fast = false) {
         osc.start(now);
         osc.stop(now + 0.07);
       }
-    }, (i * (fast ? 120 : 160)));
+    }, (i * (fast ? 100 : 140)));
   }
   const onEnd = () => {
     drumStrip.removeEventListener('transitionend', onEnd);
@@ -399,6 +418,7 @@ function spin(fast = false) {
     updateBalanceUI();
     document.getElementById('spinResult').textContent = resultText;
     addHistory(`${prize.icon} ${prize.name} — ${resultText}`);
+    addLiveUpdate(`${prize.icon} ${prize.name} — ${resultText}`);
     showResultModal(prize);
     isSpinning = false;
     document.getElementById('spinBtn').disabled = false;
@@ -414,6 +434,15 @@ function addHistory(text) {
   div.className = 'hist-item';
   div.textContent = `${new Date().toLocaleTimeString()} — ${text}`;
   historyEl.prepend(div);
+}
+function addLiveUpdate(text) {
+  const div = document.createElement('div');
+  div.className = 'hist-item';
+  div.textContent = `${new Date().toLocaleTimeString()} — ${text}`;
+  liveArea.prepend(div);
+  while (liveArea.children.length > 10) {
+    liveArea.removeChild(liveArea.lastChild);
+  }
 }
 const resultModal = document.getElementById('resultModal');
 const modalIcon = document.getElementById('modalIcon');
@@ -439,11 +468,13 @@ sellBtn.addEventListener('click', () => {
   balance += gained;
   updateBalanceUI();
   addHistory(`Продан ${lastPrizeShown.icon} ${lastPrizeShown.name} за ${lastPrizeShown.sellStars.toFixed(2)}★`);
+  addLiveUpdate(`Продан ${lastPrizeShown.icon} ${lastPrizeShown.name} за ${lastPrizeShown.sellStars.toFixed(2)}★`);
   resultModal.style.display = 'none';
 });
 keepBtn.addEventListener('click', () => {
   if (!lastPrizeShown) return;
   addHistory(`Оставлен ${lastPrizeShown.icon} ${lastPrizeShown.name}`);
+  addLiveUpdate(`Оставлен ${lastPrizeShown.icon} ${lastPrizeShown.name}`);
   resultModal.style.display = 'none';
 });
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -462,6 +493,7 @@ document.getElementById('fastSpin').addEventListener('click', () => spin(true));
 document.getElementById('requestWithdraw').addEventListener('click', () => {
   if (balance < 2000) { alert('Минимум 2000★ для вывода'); return; }
   addHistory('Запрос на вывод отправлен');
+  addLiveUpdate('Запрос на вывод отправлен');
 });
 document.getElementById('confirmDeposit').addEventListener('click', () => {
   const rubles = parseFloat(document.getElementById('depositAmount').value || '0');
@@ -470,6 +502,7 @@ document.getElementById('confirmDeposit').addEventListener('click', () => {
   balance += stars;
   updateBalanceUI();
   addHistory(`Пополнение +${stars.toFixed(2)}★`);
+  addLiveUpdate(`Пополнение +${stars.toFixed(2)}★`);
 });
 const welcome = document.getElementById('welcome');
 const startBtn = document.getElementById('startBtn');
@@ -486,7 +519,7 @@ const fakeLoad = setInterval(() => {
     clearInterval(fakeLoad);
     pct.textContent = 'Готово';
   }
-}, 220);
+}, 200);
 startBtn.addEventListener('click', async () => {
   try {
     initAudio();
@@ -494,31 +527,29 @@ startBtn.addEventListener('click', async () => {
   } catch (e) {
     console.warn('Audio init failed', e);
   }
-  welcome.style.transition = 'opacity .6s';
+  welcome.style.transition = 'opacity .5s';
   welcome.style.opacity = 0;
-  setTimeout(() => welcome.remove(), 700);
+  setTimeout(() => welcome.remove(), 600);
 });
 skipBtn.addEventListener('click', () => {
   welcome.remove();
 });
 function adjustLayoutForDevice() {
   if (isMobileDevice()) {
-    liveTabBtn.style.display = 'none';
-    document.getElementById('liveTab').style.display = 'none';
     document.querySelector('.side').style.display = 'none';
     document.querySelector('.history-card').style.display = 'none';
   } else {
-    liveTabBtn.style.display = 'block';
+    document.querySelector('.side').style.display = 'flex';
+    document.querySelector('.history-card').style.display = 'block';
     buildPrizeList();
   }
-}
-window.addEventListener('resize', () => {
-  adjustLayoutForDevice();
   populateDrum();
-});
+}
+window.addEventListener('resize', adjustLayoutForDevice);
 adjustLayoutForDevice();
 updateBalanceUI();
 addHistory('Добро пожаловать!');
+addLiveUpdate('Добро пожаловать!');
 document.getElementById('rouletteTab').classList.add('active');
 </script>
 </body>
