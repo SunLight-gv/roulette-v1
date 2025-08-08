@@ -1,1 +1,525 @@
-
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+<title>Mini Casino</title>
+<style>
+  :root {
+    --bg: #0f1724;
+    --card: #0b1320;
+    --muted: #9aa4b2;
+    --accent: #ff5a5a;
+    --accent2: #ff9a4a;
+    --glass: rgba(255,255,255,0.03);
+    --radius: 14px;
+    --shadow: 0 8px 30px rgba(2,6,23,0.6);
+    --glass-2: rgba(255,255,255,0.02);
+    --max-width: 1100px;
+    --safe-pad: 16px;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; background: linear-gradient(180deg, #081023 0%, #071423 60%); font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; color: #e6eef6; overflow: hidden; }
+  .container { max-width: var(--max-width); margin: 0 auto; height: 100%; display: flex; flex-direction: column; padding: calc(var(--safe-pad) + 4px); }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 14px; border-radius: 12px; background: linear-gradient(90deg, var(--accent), var(--accent2)); box-shadow: var(--shadow); position: relative; z-index: 5; }
+  header .title { font-size: 20px; font-weight: 800; letter-spacing: 0.6px; }
+  .balance-banner { background: rgba(255,255,255,0.12); padding: 8px 12px; border-radius: 12px; text-align: right; min-width: 160px; }
+  .balance-label { font-size: 12px; color: rgba(255,255,255,0.9); opacity: 0.95; }
+  .balance { font-size: 20px; font-weight: 800; margin-top: 2px; }
+  .topnav { display: flex; gap: 8px; margin-top: 12px; }
+  .tab-btn { flex: 1; padding: 10px 12px; border-radius: 12px; background: var(--glass); border: 1px solid rgba(255,255,255,0.03); font-weight: 700; color: var(--muted); cursor: pointer; transition: all .18s; }
+  .tab-btn:hover { transform: translateY(-3px); box-shadow: 0 6px 18px rgba(0,0,0,0.45); }
+  .tab-btn.active { background: linear-gradient(90deg, var(--accent), var(--accent2)); color: #fff; box-shadow: 0 8px 24px rgba(255,90,90,0.12); }
+  main { flex: 1; margin-top: 12px; overflow: auto; padding-bottom: 18px; }
+  .layout { display: grid; grid-template-columns: 1fr 420px; gap: 14px; max-width: var(--max-width); margin: 0 auto; }
+  .card { background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border-radius: 14px; padding: 14px; border: 1px solid rgba(255,255,255,0.03); box-shadow: var(--shadow); }
+  .muted { color: var(--muted); font-size: 13px; }
+  h2 { margin: 0 0 8px 0; font-size: 18px; }
+  .roulette-area { display: flex; flex-direction: column; gap: 12px; }
+  .bet-row { display: flex; gap: 8px; align-items: center; }
+  .input { background: var(--glass); border: 1px solid rgba(255,255,255,0.03); padding: 10px; border-radius: 10px; color: #eaf4ff; font-weight: 600; width: 100%; }
+  .btn { padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.04); cursor: pointer; background: transparent; color: #fff; font-weight: 800; }
+  .btn.primary { background: linear-gradient(90deg, var(--accent), var(--accent2)); box-shadow: 0 8px 24px rgba(255,90,90,0.12); border: none; }
+  .btn.ghost { background: transparent; border: 1px solid rgba(255,255,255,0.06); color: var(--muted); }
+  .drum-wrap { position: relative; height: 140px; border-radius: 12px; overflow: hidden; border: 2px solid rgba(255,255,255,0.04); background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.2)); }
+  .drum-strip { display: flex; align-items: center; position: absolute; left: 0; top: 0; height: 100%; transition: transform 2.6s cubic-bezier(.17,.67,.83,.67); width: max-content; }
+  .drum-item { min-width: 140px; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 34px; border-right: 1px solid rgba(255,255,255,0.02); padding: 8px; }
+  .drum-item .badge { font-size: 14px; margin-top: 8px; color: var(--muted); }
+  .marker { position: absolute; left: 50%; top: 6px; transform: translateX(-50%); width: 0; height: 0; border-left: 12px solid transparent; border-right: 12px solid transparent; border-top: 18px solid rgba(255,255,255,0.06); }
+  .result-pointer { position: absolute; left: 50%; top: 44%; transform: translateX(-50%) translateY(-50%); pointer-events: none; }
+  .side { display: flex; flex-direction: column; gap: 12px; }
+  .history { max-height: 220px; overflow: auto; padding: 8px; display: flex; flex-direction: column; gap: 8px; }
+  .hist-item { background: var(--glass-2); padding: 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.02); font-size: 13px; color: var(--muted); }
+  #welcome { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: linear-gradient(180deg, rgba(2,6,23,0.65), rgba(2,6,23,0.85)); z-index: 200; }
+  .welcome-card { width: min(880px, 95%); background: linear-gradient(180deg, #072035, #071426); border-radius: 16px; padding: 22px; border: 1px solid rgba(255,255,255,0.04); box-shadow: 0 24px 80px rgba(2,6,23,0.8); display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+  .welcome-left { flex: 1; min-width: 260px; }
+  .logo-big { font-size: 42px; font-weight: 900; margin-bottom: 8px; }
+  .welcome-right { width: 360px; min-width: 260px; }
+  .progress { height: 8px; background: rgba(255,255,255,0.03); border-radius: 8px; overflow: hidden; margin-top: 12px; }
+  .progress > i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width 2s ease; }
+  .rules { margin-top: 12px; font-size: 14px; color: var(--muted); line-height: 1.4; }
+  .welcome-cta { display: flex; gap: 8px; margin-top: 16px; }
+  .modal { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(2,6,23,0.6); z-index: 300; }
+  .modal-card { background: linear-gradient(180deg, #0c1a29, #081021); padding: 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.04); width: 320px; text-align: center; box-shadow: 0 20px 60px rgba(2,6,23,0.8); }
+  .prize-icon { font-size: 56px; }
+  .prize-name { font-weight: 900; margin-top: 8px; }
+  .prize-rare { margin-top: 6px; font-size: 13px; color: var(--muted); }
+  .sell-row { display: flex; gap: 8px; margin-top: 14px; justify-content: center; }
+  .rarity-chip { display: inline-block; padding: 6px 10px; border-radius: 999px; font-weight: 800; font-size: 12px; }
+  .r-common { background: rgba(255,255,255,0.04); color: #dbe8ff; }
+  .r-rare { background: linear-gradient(90deg, #6bd3ff, #5ab2ff); color: #04243a; }
+  .r-epic { background: linear-gradient(90deg, #b98bff, #ff7ad1); color: #240133; }
+  .r-legend { background: linear-gradient(90deg, #ffd36b, #ff9a4a); color: #2a1300; }
+  .note { font-size: 12px; color: var(--muted); }
+  .flex { display: flex; gap: 8px; align-items: center; }
+  #rouletteTab, #withdrawTab, #depositTab, #liveTab { display: none; }
+  #rouletteTab.active, #withdrawTab.active, #depositTab.active, #liveTab.active { display: block; }
+  @media (max-width: 720px) {
+    .layout { grid-template-columns: 1fr; padding: 0 6px; }
+    header, .topnav { border-radius: 12px; }
+    .balance-banner { min-width: unset; }
+    .side, .history-card, #liveTab { display: none !important; }
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="title">🎰 Mini Casino</div>
+      <div class="balance-banner" aria-live="polite">
+        <div class="balance-label">Баланс</div>
+        <div class="balance" id="balance">0 ★</div>
+      </div>
+    </header>
+    <div class="topnav" style="margin-top:8px">
+      <button class="tab-btn active" data-tab="roulette">Рулетка</button>
+      <button class="tab-btn" data-tab="withdraw">Вывод</button>
+      <button class="tab-btn" data-tab="deposit">Пополнение</button>
+      <button class="tab-btn" data-tab="live" id="liveTabBtn">Live</button>
+    </div>
+    <main>
+      <div class="layout">
+        <div>
+          <div class="card" id="rouletteTab">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <h2>Рулетка</h2>
+                <div class="muted">Выбери ставку, нажми «Крутить» и смотри результат.</div>
+              </div>
+            </div>
+            <div style="height:12px"></div>
+            <div class="roulette-area">
+              <div class="bet-row">
+                <input id="betAmount" class="input" type="number" placeholder="Сумма ставки (★)" value="50" />
+                <button id="spinBtn" class="btn primary">Крутить</button>
+                <button id="fastSpin" class="btn ghost">Быстрый x2</button>
+              </div>
+              <div class="drum-wrap card" style="padding:0">
+                <div class="marker" aria-hidden="true"></div>
+                <div class="drum-strip" id="drumStrip" style="transform:translateX(0)"></div>
+                <div class="result-pointer" aria-hidden="true">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" style="filter:drop-shadow(0 6px 14px rgba(0,0,0,0.6))">
+                    <path d="M12 2L15 9H9L12 2Z" fill="#fff" opacity="0.9"/>
+                    <circle cx="12" cy="16" r="6" fill="#fff" opacity="0.06"/>
+                  </svg>
+                </div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+                <div class="flex"><div class="note">Шанс победы ~55%.</div></div>
+                <div class="muted">Результат: <span id="spinResult" style="font-weight:800;margin-left:8px">—</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="card history-card" style="margin-top:12px">
+            <h2>История</h2>
+            <div class="history" id="history"></div>
+          </div>
+          <div class="card" id="withdrawTab">
+            <h2>Вывод</h2>
+            <div class="muted">Минимум для вывода — 2000 ★</div>
+            <div style="margin-top:12px">
+              <button class="btn primary" id="requestWithdraw">Запросить вывод</button>
+            </div>
+          </div>
+          <div class="card" id="depositTab">
+            <h2>Пополнение</h2>
+            <div class="muted">1 ₽ = 0.67 ★</div>
+            <div style="margin-top:12px">
+              <input id="depositAmount" class="input" type="number" placeholder="Сумма в ₽" value="100" />
+              <button class="btn primary" id="confirmDeposit">Пополнить</button>
+            </div>
+          </div>
+          <div class="card" id="liveTab">
+            <h2>Live</h2>
+            <div id="liveArea" style="min-height:80px;display:flex;flex-direction:column;gap:6px"></div>
+          </div>
+        </div>
+        <aside class="side">
+          <div class="card">
+            <h2>Баланс</h2>
+            <div style="display:flex;gap:8px;margin-top:10px">
+              <div style="flex:1">
+                <div class="muted">Твой баланс</div>
+                <div style="font-weight:900;font-size:22px;margin-top:6px" id="balanceBig">0 ★</div>
+                <div class="note" style="margin-top:6px">1 ₽ = 0.67 ★</div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <h2>Список призов</h2>
+            <ul id="prizeList" style="margin:8px 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px"></ul>
+          </div>
+        </aside>
+      </div>
+    </main>
+  </div>
+  <div id="welcome" role="dialog" aria-modal="true">
+    <div class="welcome-card">
+      <div class="welcome-left">
+        <div class="logo-big">🎰 Mini Casino</div>
+        <div style="font-size:16px;font-weight:700">Добро пожаловать!</div>
+        <div class="rules">
+          <p><b>Привет!</b> Крути барабан, получай призы и продавай их за звёзды или рубли.</p>
+          <p>Нажми «Начать» для включения звука.</p>
+        </div>
+        <div class="welcome-cta">
+          <button id="startBtn" class="btn primary">Начать</button>
+          <button id="skipBtn" class="btn ghost">Пропустить</button>
+        </div>
+      </div>
+      <div class="welcome-right">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div class="muted">Загрузка</div>
+          <div class="muted" id="loadPercent">0%</div>
+        </div>
+        <div class="progress"><i id="progressBar"></i></div>
+        <div style="margin-top:14px">
+          <div class="muted">Правила</div>
+          <ol class="rules" style="margin-top:8px">
+            <li>Минимум для вывода — 2000 ★.</li>
+            <li>1 ₽ = 0.67 ★ при пополнении.</li>
+            <li>Каждый приз имеет редкость и цену.</li>
+            <li>Звёзды не имеют реальной стоимости.</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="resultModal" class="modal" style="display:none">
+    <div class="modal-card" role="dialog" aria-modal="true">
+      <div class="prize-icon" id="modalIcon">⭐</div>
+      <div class="prize-name" id="modalName">Название</div>
+      <div id="modalRarity" class="prize-rare">Редкость</div>
+      <div style="margin-top:10px" id="modalDesc" class="muted">Описание</div>
+      <div class="sell-row">
+        <button id="sellBtn" class="btn primary">Продать</button>
+        <button id="keepBtn" class="btn">Оставить</button>
+      </div>
+    </div>
+  </div>
+<script>
+const PRIZES = [
+  { id: 'star', icon: '⭐', name: 'Звезда', rarity: 'common', sellRub: 0.75, sellStars: 0.5, desc: 'Маленькая звезда.', effect: { type: 'fixed', value: 10 }, marker: '+' },
+  { id: 'toy', icon: '🧸', name: 'Плюшевый медвежонок', rarity: 'common', sellRub: 1.5, sellStars: 1, desc: 'Милый сувенир.', effect: { type: 'fixed', value: 20 }, marker: '+' },
+  { id: 'gem', icon: '💎', name: 'Драгоценный камень', rarity: 'rare', sellRub: 12, sellStars: 8, desc: 'Редкий камень.', effect: { type: 'mult', value: 2 }, marker: '+' },
+  { id: 'coin', icon: '🪙', name: 'Монета', rarity: 'common', sellRub: 1.2, sellStars: 0.8, desc: 'Небольшая награда.', effect: { type: 'fixed', value: 15 }, marker: '+' },
+  { id: 'gift', icon: '🎁', name: 'Подарок', rarity: 'epic', sellRub: 30, sellStars: 20, desc: 'Случайный бонус.', effect: { type: 'random', values: [20, 50, 100] }, marker: '+' },
+  { id: 'target', icon: '🎯', name: 'Точный выстрел', rarity: 'legend', sellRub: 120, sellStars: 80, desc: 'Большой множитель!', effect: { type: 'mult', value: 5 }, marker: '+' },
+  { id: 'bomb', icon: '💣', name: 'Бомба', rarity: 'common', sellRub: 0, sellStars: 0, desc: 'Потеря суммы.', effect: { type: 'neg', value: 10 }, marker: '-' },
+  { id: 'skull', icon: '☠️', name: 'Проклятие', rarity: 'rare', sellRub: 0, sellStars: 0, desc: 'Крупная потеря.', effect: { type: 'neg', value: 40 }, marker: '-' }
+];
+const RARITY_LABEL = {
+  common: { label: 'Common', class: 'r-common' },
+  rare: { label: 'Rare', class: 'r-rare' },
+  epic: { label: 'Epic', class: 'r-epic' },
+  legend: { label: 'Legend', class: 'r-legend' }
+};
+let balance = parseInt(localStorage.getItem('balance') || '1000', 10);
+let audioCtx = null;
+let spinOsc = null;
+let spinGain = null;
+let isSpinning = false;
+const drumStrip = document.getElementById('drumStrip');
+const historyEl = document.getElementById('history');
+const liveArea = document.getElementById('liveArea');
+const liveTabBtn = document.getElementById('liveTabBtn');
+function isMobileDevice() {
+  return window.innerWidth <= 720 || /Mobi|Android|iPhone|iPad|iPod/.test(navigator.userAgent);
+}
+function updateBalanceUI() {
+  document.getElementById('balance').textContent = balance.toFixed(2) + ' ★';
+  document.getElementById('balanceBig').textContent = balance.toFixed(2) + ' ★';
+  localStorage.setItem('balance', balance);
+}
+function buildPrizeList() {
+  const ul = document.getElementById('prizeList');
+  ul.innerHTML = '';
+  PRIZES.forEach(p => {
+    const li = document.createElement('li');
+    li.style.display = 'flex';
+    li.style.justifyContent = 'space-between';
+    li.style.alignItems = 'center';
+    li.style.padding = '8px';
+    li.style.borderRadius = '10px';
+    li.style.background = 'rgba(255,255,255,0.02)';
+    li.innerHTML = `<div style="display:flex;align-items:center;gap:10px">
+      <div style="font-size:20px">${p.icon}</div>
+      <div>
+        <div style="font-weight:800">${p.name}</div>
+        <div style="font-size:12px;color:var(--muted)">${p.desc}</div>
+      </div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-weight:800">${p.sellStars.toFixed(2)}★</div>
+      <div style="font-size:12px;color:var(--muted)">${p.sellRub}₽</div>
+    </div>`;
+    ul.appendChild(li);
+  });
+}
+function populateDrum() {
+  drumStrip.innerHTML = '';
+  drumItems = [];
+  for (let i = 0; i < 36; i++) {
+    const p = PRIZES[Math.floor(Math.random() * PRIZES.length)];
+    drumItems.push(p);
+    const d = document.createElement('div');
+    d.className = 'drum-item';
+    d.dataset.idx = i;
+    d.style.textAlign = 'center';
+    d.innerHTML = `<div style="font-size:38px">${p.icon}</div>
+                   <div class="badge">${p.marker} ${p.name}</div>`;
+    drumStrip.appendChild(d);
+  }
+  drumStrip.style.width = `${drumItems.length * 140}px`;
+}
+let drumItems = [];
+populateDrum();
+function initAudio() {
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  spinOsc = audioCtx.createOscillator();
+  spinGain = audioCtx.createGain();
+  spinOsc.type = 'sawtooth';
+  spinOsc.frequency.value = 40;
+  spinGain.gain.value = 0;
+  spinOsc.connect(spinGain);
+  spinGain.connect(audioCtx.destination);
+  spinOsc.start();
+}
+function playSpinStart() {
+  if (!audioCtx) initAudio();
+  spinGain.gain.cancelScheduledValues(audioCtx.currentTime);
+  spinGain.gain.setValueAtTime(0, audioCtx.currentTime);
+  spinGain.gain.linearRampToValueAtTime(0.18, audioCtx.currentTime + 0.03);
+  spinOsc.frequency.exponentialRampToValueAtTime(220, audioCtx.currentTime + 0.25);
+}
+function playSpinStop() {
+  if (!audioCtx) return;
+  spinGain.gain.cancelScheduledValues(audioCtx.currentTime);
+  spinOsc.frequency.cancelScheduledValues(audioCtx.currentTime);
+  spinOsc.frequency.setValueAtTime(220, audioCtx.currentTime);
+  spinGain.gain.setValueAtTime(0.18, audioCtx.currentTime);
+  spinGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.6);
+  spinOsc.frequency.linearRampToValueAtTime(40, audioCtx.currentTime + 1.2);
+}
+function spin(fast = false) {
+  if (isSpinning) return;
+  const bet = parseFloat(document.getElementById('betAmount').value || '0');
+  if (!bet || bet <= 0) { alert('Введите корректную ставку'); return; }
+  if (bet > balance) { alert('Недостаточно средств'); return; }
+  isSpinning = true;
+  balance -= bet;
+  updateBalanceUI();
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+  playSpinStart();
+  populateDrum();
+  const total = drumItems.length;
+  const targetIdx = Math.floor(Math.random() * total);
+  const loops = fast ? 3 : 6;
+  const itemWidth = 140;
+  const drumWrap = document.querySelector('.drum-wrap');
+  const wrapWidth = drumWrap.offsetWidth;
+  const centerX = wrapWidth / 2;
+  const translateTarget = -(targetIdx * itemWidth) + (centerX - itemWidth / 2);
+  const totalTranslate = translateTarget - (loops * total * itemWidth * 0.5);
+  drumStrip.style.transition = `transform ${fast ? 1.2 : 2.6}s cubic-bezier(.17,.67,.83,.67)`;
+  requestAnimationFrame(() => {
+    drumStrip.style.transform = `translateX(${totalTranslate}px)`;
+  });
+  const ticks = fast ? 8 : 16;
+  for (let i = 0; i < ticks; i++) {
+    setTimeout(() => {
+      if (audioCtx) {
+        const osc = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        osc.type = 'square';
+        osc.frequency.value = 800;
+        g.gain.value = 0.0001;
+        osc.connect(g);
+        g.connect(audioCtx.destination);
+        const now = audioCtx.currentTime;
+        g.gain.setValueAtTime(0.0001, now);
+        g.gain.exponentialRampToValueAtTime(0.08, now + 0.001);
+        g.gain.exponentialRampToValueAtTime(0.0001, now + 0.06);
+        osc.start(now);
+        osc.stop(now + 0.07);
+      }
+    }, (i * (fast ? 120 : 160)));
+  }
+  const onEnd = () => {
+    drumStrip.removeEventListener('transitionend', onEnd);
+    playSpinStop();
+    const finalTransform = getComputedStyle(drumStrip).transform;
+    let tx = 0;
+    if (finalTransform && finalTransform !== 'none') {
+      const m = finalTransform.match(/matrix.*\((.+)\)/);
+      if (m) tx = parseFloat(m[1].split(', ')[4]);
+    }
+    const approx = Math.round((-tx - (centerX - itemWidth / 2)) / itemWidth);
+    let landed = approx % total;
+    if (landed < 0) landed += total;
+    const prize = drumItems[landed] || PRIZES[0];
+    let resultText = '';
+    if (prize.effect.type === 'fixed') {
+      balance += prize.effect.value;
+      resultText = `Вы получили ${prize.effect.value} ★`;
+    } else if (prize.effect.type === 'mult') {
+      const win = bet * prize.effect.value;
+      balance += win;
+      resultText = `Множитель x${prize.effect.value}! ${win.toFixed(2)} ★`;
+    } else if (prize.effect.type === 'random') {
+      const val = prize.effect.values[Math.floor(Math.random() * prize.effect.values.length)];
+      balance += val;
+      resultText = `Сюрприз! ${val.toFixed(2)} ★`;
+    } else if (prize.effect.type === 'neg') {
+      balance -= prize.effect.value;
+      resultText = `Штраф ${prize.effect.value} ★`;
+    }
+    if (balance < 0) balance = 0;
+    updateBalanceUI();
+    document.getElementById('spinResult').textContent = resultText;
+    addHistory(`${prize.icon} ${prize.name} — ${resultText}`);
+    showResultModal(prize);
+    isSpinning = false;
+    document.getElementById('spinBtn').disabled = false;
+    document.getElementById('spinBtn').textContent = 'Крутить';
+  };
+  drumStrip.addEventListener('transitionend', onEnd);
+  document.getElementById('spinBtn').disabled = true;
+  document.getElementById('spinBtn').textContent = 'Крутим...';
+}
+function addHistory(text) {
+  if (isMobileDevice()) return;
+  const div = document.createElement('div');
+  div.className = 'hist-item';
+  div.textContent = `${new Date().toLocaleTimeString()} — ${text}`;
+  historyEl.prepend(div);
+}
+const resultModal = document.getElementById('resultModal');
+const modalIcon = document.getElementById('modalIcon');
+const modalName = document.getElementById('modalName');
+const modalRarity = document.getElementById('modalRarity');
+const modalDesc = document.getElementById('modalDesc');
+const sellBtn = document.getElementById('sellBtn');
+const keepBtn = document.getElementById('keepBtn');
+let lastPrizeShown = null;
+function showResultModal(prize) {
+  lastPrizeShown = prize;
+  modalIcon.textContent = prize.icon;
+  modalName.textContent = prize.name;
+  modalDesc.textContent = prize.desc;
+  const rar = RARITY_LABEL[prize.rarity] || { label: prize.rarity, class: 'r-common' };
+  modalRarity.innerHTML = `<span class="rarity-chip ${rar.class}">${rar.label.toUpperCase()}</span>`;
+  sellBtn.textContent = `Продать за ${prize.sellRub}₽ / ${prize.sellStars.toFixed(2)}★`;
+  resultModal.style.display = 'flex';
+}
+sellBtn.addEventListener('click', () => {
+  if (!lastPrizeShown) return;
+  const gained = lastPrizeShown.sellStars;
+  balance += gained;
+  updateBalanceUI();
+  addHistory(`Продан ${lastPrizeShown.icon} ${lastPrizeShown.name} за ${lastPrizeShown.sellStars.toFixed(2)}★`);
+  resultModal.style.display = 'none';
+});
+keepBtn.addEventListener('click', () => {
+  if (!lastPrizeShown) return;
+  addHistory(`Оставлен ${lastPrizeShown.icon} ${lastPrizeShown.name}`);
+  resultModal.style.display = 'none';
+});
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const tab = btn.dataset.tab;
+    document.querySelectorAll('#rouletteTab, #withdrawTab, #depositTab, #liveTab').forEach(tabEl => {
+      tabEl.classList.remove('active');
+    });
+    document.getElementById(`${tab}Tab`).classList.add('active');
+  });
+});
+document.getElementById('spinBtn').addEventListener('click', () => spin(false));
+document.getElementById('fastSpin').addEventListener('click', () => spin(true));
+document.getElementById('requestWithdraw').addEventListener('click', () => {
+  if (balance < 2000) { alert('Минимум 2000★ для вывода'); return; }
+  addHistory('Запрос на вывод отправлен');
+});
+document.getElementById('confirmDeposit').addEventListener('click', () => {
+  const rubles = parseFloat(document.getElementById('depositAmount').value || '0');
+  if (!rubles || rubles <= 0) { alert('Введите корректную сумму'); return; }
+  const stars = rubles * 0.67;
+  balance += stars;
+  updateBalanceUI();
+  addHistory(`Пополнение +${stars.toFixed(2)}★`);
+});
+const welcome = document.getElementById('welcome');
+const startBtn = document.getElementById('startBtn');
+const skipBtn = document.getElementById('skipBtn');
+const bar = document.getElementById('progressBar');
+const pct = document.getElementById('loadPercent');
+let loadProgress = 0;
+const fakeLoad = setInterval(() => {
+  loadProgress += Math.random() * 12;
+  if (loadProgress > 100) loadProgress = 100;
+  bar.style.width = loadProgress + '%';
+  pct.textContent = Math.floor(loadProgress) + '%';
+  if (loadProgress >= 100) {
+    clearInterval(fakeLoad);
+    pct.textContent = 'Готово';
+  }
+}, 220);
+startBtn.addEventListener('click', async () => {
+  try {
+    initAudio();
+    if (audioCtx.state === 'suspended') await audioCtx.resume();
+  } catch (e) {
+    console.warn('Audio init failed', e);
+  }
+  welcome.style.transition = 'opacity .6s';
+  welcome.style.opacity = 0;
+  setTimeout(() => welcome.remove(), 700);
+});
+skipBtn.addEventListener('click', () => {
+  welcome.remove();
+});
+function adjustLayoutForDevice() {
+  if (isMobileDevice()) {
+    liveTabBtn.style.display = 'none';
+    document.getElementById('liveTab').style.display = 'none';
+    document.querySelector('.side').style.display = 'none';
+    document.querySelector('.history-card').style.display = 'none';
+  } else {
+    liveTabBtn.style.display = 'block';
+    buildPrizeList();
+  }
+}
+window.addEventListener('resize', () => {
+  adjustLayoutForDevice();
+  populateDrum();
+});
+adjustLayoutForDevice();
+updateBalanceUI();
+addHistory('Добро пожаловать!');
+document.getElementById('rouletteTab').classList.add('active');
+</script>
+</body>
+</html>
