@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
 <title>Best Casino</title>
 <style>
 :root {
@@ -23,6 +23,7 @@ html, body {
   font-family: Inter, system-ui, Arial;
   color: #e9f2fb;
   -webkit-font-smoothing: antialiased;
+  touch-action: manipulation;
 }
 .container {
   max-width: 1200px;
@@ -466,10 +467,10 @@ h2 { margin: 0 0 8px 0; }
       </div>
       <div class="card" id="depositTab" style="margin-top:12px;display:none">
         <h2>Пополнение</h2>
-        <div class="muted">Минимум пополнения — 25★</div>
+        <div class="muted">Пополнение доступно только через бота. Используйте команду /deposit &lt;сумма&gt; в чате с ботом.</div>
         <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
           <input id="depositAmount" class="input" style="padding:10px;border-radius:10px;background:var(--glass);border:1px solid rgba(255,255,255,0.03);color:white;width:160px" type="number" placeholder="Сумма в ★" value="25" min="25" />
-            <button id="confirmDeposit" class="btn primary">Пополнить</button>
+            <button id="confirmDeposit" class="btn primary">Инструкция</button>
           <div class="muted" id="depositRub">0 ₽</div>
         </div>
       </div>
@@ -620,7 +621,6 @@ if (window.Telegram && Telegram.WebApp) {
   const themeParams = Telegram.WebApp.themeParams || {};
   document.body.style.backgroundColor = themeParams.bg_color || '#041126';
   document.body.style.color = themeParams.text_color || '#e9f2fb';
-  console.log({userId, firstName, lastName, username, languageCode, isPremium, photoUrl, themeParams});
 }
 function updateUI() {
   balanceEl.textContent = balance.toFixed(2) + ' ★';
@@ -1048,14 +1048,7 @@ document.getElementById('spinTop').addEventListener('click', () => spinStrip({ s
 document.getElementById('spinBottom').addEventListener('click', () => spinStrip({ stripId: 'drumBottom', betInput: 'betBottom', btnId: 'spinBottom' }));
 document.getElementById('bothBtn').addEventListener('click', spinBoth);
 document.getElementById('confirmDeposit').addEventListener('click', () => {
-  const s = parseFloat(document.getElementById('depositAmount').value || 0);
-  if(!s || s < 25) { showNotification('Минимум пополнения — 25★'); return; }
-  balance += s;
-  localStorage.setItem('balance', balance);
-  updateUI();
-  addHistory(`Пополнение +${s.toFixed(2)}★ (${(s * 1.9).toFixed(2)}₽)`);
-  addLive(`Пополнение +${s.toFixed(2)}★`);
-  document.getElementById('depositRub').textContent = (s * 1.9).toFixed(2) + ' ₽';
+  showNotification('Пополнение только через бота: используйте команду /deposit <сумма> в чате с ботом. После оплаты нажмите кнопку в сообщении бота, чтобы открыть приложение и обновить баланс.');
 });
 document.getElementById('requestWithdraw').addEventListener('click', () => {
   if(balance < 2000) { showNotification('Минимум 2000★ для вывода'); return; }
@@ -1121,6 +1114,27 @@ window.addEventListener('resize', () => {
 });
 localStorage.setItem('balance', balance);
 localStorage.setItem('nickname', nickname);
+(function(){
+  const params = new URLSearchParams(location.search);
+  if(params.has('topup') && params.has('uid') && window.Telegram && Telegram.WebApp) {
+    const topup = parseFloat(params.get('topup')) || 0;
+    const uid = params.get('uid');
+    const initDataUnsafe = Telegram.WebApp.initDataUnsafe || {};
+    const user = initDataUnsafe.user || {};
+    if(String(user.id) === String(uid) && topup > 0) {
+      balance += topup;
+      localStorage.setItem('balance', balance);
+      updateUI();
+      addHistory(`Пополнение через бот +${topup}★`);
+      addLive(`Пополнение через бот +${topup}★`);
+      showNotification(`Баланс пополнен +${topup}★`);
+      const cleanUrl = location.protocol + '//' + location.host + location.pathname;
+      history.replaceState({}, '', cleanUrl);
+    }
+  }
+})();
+document.addEventListener('touchstart', function(e){ if(e.touches && e.touches.length > 1) e.preventDefault(); }, {passive:false});
+document.addEventListener('gesturestart', function(e){ e.preventDefault(); });
 </script>
 </body>
 </html>
