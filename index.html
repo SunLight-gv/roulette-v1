@@ -377,15 +377,6 @@ h2 { margin: 0 0 8px 0; }
   .modal-card { width: 92%; }
   .history-card { display: none; }
 }
-.withdraw-form {
-  display:flex;
-  flex-direction:column;
-  gap:8px;
-  text-align:left;
-}
-.input-field {
-  padding:10px;border-radius:10px;background:var(--glass);border:1px solid rgba(255,255,255,0.03);color:white;width:100%;
-}
 </style>
 </head>
 <body>
@@ -491,7 +482,7 @@ h2 { margin: 0 0 8px 0; }
       <div class="card" id="supportTab" style="margin-top:12px;display:none">
         <h2>Поддержка</h2>
         <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
-          <button class="btn primary" id="supportChannel">Канал поддержки</button>
+          <button class="btn primary" id="supportChannel">Канал</button>
           <button class="btn primary" id="supportChat">Чат с поддержкой</button>
           <button class="btn primary" id="ownerChannel">Канал владельца</button>
         </div>
@@ -548,6 +539,19 @@ h2 { margin: 0 0 8px 0; }
     </div>
   </div>
 </div>
+<div class="modal" id="withdrawModal">
+  <div class="modal-card">
+    <h2>Запрос на вывод</h2>
+    <input id="withdrawAmount" type="number" placeholder="Сумма в ★" min="2000" style="padding:10px;border-radius:10px;background:var(--glass);border:1px solid rgba(255,255,255,0.03);color:white;width:100%;margin-bottom:8px" />
+    <select id="paymentSystem" style="padding:10px;border-radius:10px;background:var(--glass);border:1px solid rgba(255,255,255,0.03);color:white;width:100%;margin-bottom:8px">
+      <option value="card">Банковская карта</option>
+      <option value="crypto">Криптовалюта</option>
+      <option value="other">Другое</option>
+    </select>
+    <input id="accountDetails" type="text" placeholder="Реквизиты" style="padding:10px;border-radius:10px;background:var(--glass);border:1px solid rgba(255,255,255,0.03);color:white;width:100%;margin-bottom:8px" />
+    <button id="sendWithdraw" class="btn primary">Отправить</button>
+  </div>
+</div>
 <div class="modal more-modal" id="moreModal">
   <div class="more-modal-card">
     <h2>Другие разделы</h2>
@@ -557,26 +561,6 @@ h2 { margin: 0 0 8px 0; }
     <div class="more-link" data-tab="withdraw">Вывод</div>
     <div class="more-link" data-tab="support">Поддержка</div>
     <div class="more-link" data-tab="live">Live</div>
-  </div>
-</div>
-<div class="modal" id="withdrawModal">
-  <div class="modal-card">
-    <h2 style="margin-bottom:8px">Запрос на вывод</h2>
-    <div class="withdraw-form">
-      <input id="withdrawAmount" class="input-field" type="number" placeholder="Сумма в ★" value="2000" min="2000" />
-      <select id="withdrawMethod" class="input-field">
-        <option value="card">Карта</option>
-        <option value="qiwi">QIWI</option>
-        <option value="crypto">Крипто</option>
-        <option value="other">Другое</option>
-      </select>
-      <input id="withdrawContact" class="input-field" type="text" placeholder="Реквизиты для вывода (номер, кошелёк, адрес)" />
-      <textarea id="withdrawComment" class="input-field" placeholder="Комментарий (опционально)"></textarea>
-      <div style="display:flex;gap:8px;justify-content:center">
-        <button id="withdrawSubmit" class="btn primary">Отправить запрос</button>
-        <button id="withdrawCancel" class="btn">Отмена</button>
-      </div>
-    </div>
   </div>
 </div>
 <div class="mobile-nav" id="mobileNav">
@@ -630,46 +614,46 @@ const caseRarity = document.getElementById('caseRarity');
 const caseSellBtn = document.getElementById('caseSellBtn');
 const caseKeepBtn = document.getElementById('caseKeepBtn');
 const moreModal = document.getElementById('moreModal');
+const withdrawModal = document.getElementById('withdrawModal');
 const nicknameEl = document.getElementById('nickname');
 const inventoryList = document.getElementById('inventoryList');
 const sortBy = document.getElementById('sortBy');
+
+function getUrlUser() {
+  const p = new URLSearchParams(location.search);
+  if (p.get('tg_username')) return { username: p.get('tg_username'), first_name: p.get('tg_first') || '', last_name: p.get('tg_last') || '' };
+  if (p.get('username')) return { username: p.get('username'), first_name: p.get('first') || '', last_name: p.get('last') || '' };
+  return null;
+}
+const urlUser = getUrlUser();
 if (window.Telegram && Telegram.WebApp) {
-  Telegram.WebApp.ready();
-  Telegram.WebApp.expand();
+  try { Telegram.WebApp.ready(); } catch(e) {}
   const initDataUnsafe = Telegram.WebApp.initDataUnsafe || {};
   const user = initDataUnsafe.user || {};
   userId = user.id || null;
-  firstName = user.first_name || 'Unknown';
+  firstName = user.first_name || '';
   lastName = user.last_name || '';
   username = user.username || '';
   languageCode = user.language_code || 'en';
   isPremium = user.is_premium || false;
   photoUrl = user.photo_url || '';
-  nickname = username || firstName || 'Player';
+  nickname = username || firstName || nickname;
   localStorage.setItem('nickname', nickname);
-  const themeParams = Telegram.WebApp.themeParams || {};
-  document.body.style.backgroundColor = themeParams.bg_color || '#041126';
-  document.body.style.color = themeParams.text_color || '#e9f2fb';
-  const payload = {
-    type: 'init',
-    user: {
-      id: userId,
-      first_name: firstName,
-      last_name: lastName,
-      username: username,
-      language_code: languageCode,
-      is_premium: isPremium,
-      photo_url: photoUrl,
-      nickname: nickname
-    },
-    balance: balance,
-    lives: lives,
-    time: new Date().toISOString()
-  };
   try {
-    Telegram.WebApp.sendData(JSON.stringify(payload));
+    const themeParams = Telegram.WebApp.themeParams || {};
+    if (themeParams.bg_color) document.body.style.backgroundColor = themeParams.bg_color;
+    if (themeParams.text_color) document.body.style.color = themeParams.text_color;
   } catch(e) {}
+} else if (urlUser) {
+  username = urlUser.username || '';
+  firstName = urlUser.first_name || '';
+  lastName = urlUser.last_name || '';
+  nickname = username || firstName || nickname;
+  localStorage.setItem('nickname', nickname);
+} else {
+  nickname = localStorage.getItem('nickname') || nickname;
 }
+
 function updateUI() {
   balanceEl.textContent = balance.toFixed(2) + ' ★';
   balanceBig.textContent = balance.toFixed(2) + ' ★';
@@ -1099,53 +1083,54 @@ document.getElementById('confirmDeposit').addEventListener('click', () => {
   showNotification('Пополнение только через бота: используйте команду /deposit <сумма> в чате с ботом. После оплаты нажмите кнопку в сообщении бота, чтобы открыть приложение и обновить баланс.');
 });
 document.getElementById('requestWithdraw').addEventListener('click', () => {
-  document.getElementById('withdrawModal').style.display = 'flex';
-  setTimeout(() => document.querySelector('#withdrawModal .modal-card').classList.add('show'), 10);
-  const wa = document.getElementById('withdrawAmount');
-  wa.value = Math.max(2000, Math.round(balance));
+  if(balance < 2000) { showNotification('Минимум 2000★ для вывода'); return; }
+  withdrawModal.style.display = 'flex';
+  setTimeout(() => withdrawModal.querySelector('.modal-card').classList.add('show'), 10);
 });
-document.getElementById('withdrawCancel').addEventListener('click', () => {
-  document.querySelector('#withdrawModal .modal-card').classList.remove('show');
-  setTimeout(() => document.getElementById('withdrawModal').style.display = 'none', 300);
-});
-document.getElementById('withdrawSubmit').addEventListener('click', () => {
-  const amount = parseInt(document.getElementById('withdrawAmount').value || '0', 10);
-  const method = document.getElementById('withdrawMethod').value;
-  const contact = document.getElementById('withdrawContact').value || '';
-  const comment = document.getElementById('withdrawComment').value || '';
-  if(amount < 2000) { showNotification('Минимальный вывод 2000★'); return; }
-  const payload = {
-    type: 'withdraw_request',
-    amount: amount,
-    method: method,
-    contact: contact,
-    comment: comment,
-    user: {
-      id: userId,
-      first_name: firstName,
-      last_name: lastName,
-      username: username,
-      language_code: languageCode,
-      is_premium: isPremium,
-      photo_url: photoUrl,
-      nickname: nickname
-    },
-    balance: balance,
-    lives: lives,
-    time: new Date().toISOString()
-  };
-  try {
-    if(window.Telegram && Telegram.WebApp && Telegram.WebApp.sendData) {
-      Telegram.WebApp.sendData(JSON.stringify(payload));
-      showNotification('Запрос отправлен администратору');
-      document.querySelector('#withdrawModal .modal-card').classList.remove('show');
-      setTimeout(() => document.getElementById('withdrawModal').style.display = 'none', 300);
-    } else {
-      showNotification('Откройте приложение из Telegram, чтобы отправить запрос');
-    }
-  } catch(e) {
-    showNotification('Ошибка отправки');
+document.getElementById('sendWithdraw').addEventListener('click', () => {
+  const amount = parseFloat(document.getElementById('withdrawAmount').value);
+  const system = document.getElementById('paymentSystem').value;
+  const details = document.getElementById('accountDetails').value;
+  if(isNaN(amount) || amount < 2000 || amount > balance || !details.trim()) {
+    showNotification('Неверные данные');
+    return;
   }
+  const withdrawPayload = {
+    action: 'withdraw_request',
+    amount: amount,
+    payment_system: system,
+    account_details: details,
+    user_id: userId,
+    username: username,
+    first_name: firstName,
+    last_name: lastName,
+    language_code: languageCode,
+    is_premium: isPremium,
+    photo_url: photoUrl,
+    client_nickname: nickname,
+    ts: Date.now()
+  };
+  if(window.Telegram && Telegram.WebApp && Telegram.WebApp.sendData) {
+    try {
+      Telegram.WebApp.sendData(JSON.stringify(withdrawPayload));
+      showNotification('Запрос на вывод отправлен через Telegram бота');
+      addHistory(`Запрос на вывод ${amount}★`);
+    } catch (e) {
+      const pending = JSON.parse(localStorage.getItem('pendingWithdraws') || '[]');
+      pending.push(withdrawPayload);
+      localStorage.setItem('pendingWithdraws', JSON.stringify(pending));
+      showNotification('Ошибка отправки через Telegram. Запрос сохранён локально.');
+      addHistory(`Локальный запрос на вывод ${amount}★`);
+    }
+  } else {
+    const pending = JSON.parse(localStorage.getItem('pendingWithdraws') || '[]');
+    pending.push(withdrawPayload);
+    localStorage.setItem('pendingWithdraws', JSON.stringify(pending));
+    showNotification('Запрос сохранён локально. Откройте бота и используйте команду для вывода или отправьте реквизиты в чат с поддержкой.');
+    addHistory(`Локальный запрос на вывод ${amount}★`);
+  }
+  withdrawModal.querySelector('.modal-card').classList.remove('show');
+  setTimeout(() => withdrawModal.style.display = 'none', 300);
 });
 document.getElementById('buyLife').addEventListener('click', () => {
   if(balance < 50) { showNotification('Нужно 50★'); return; }
@@ -1157,19 +1142,13 @@ document.getElementById('buyLife').addEventListener('click', () => {
 });
 document.getElementById('dailySpinBtn').addEventListener('click', () => spinDailyFlow(document.getElementById('dailyCanvas').getContext('2d'), 'dailyCanvas'));
 document.getElementById('supportChannel').addEventListener('click', () => {
-  const url = 'https://t.me/BestSuportCasino';
-  if(window.Telegram && Telegram.WebApp && Telegram.WebApp.openLink) Telegram.WebApp.openLink(url);
-  else window.open(url, '_blank');
+  window.open('https://t.me/BestCasinoRuSSia', '_blank');
 });
 document.getElementById('supportChat').addEventListener('click', () => {
-  const url = 'https://t.me/BestSuportCasino';
-  if(window.Telegram && Telegram.WebApp && Telegram.WebApp.openLink) Telegram.WebApp.openLink(url);
-  else window.open(url, '_blank');
+  window.open('https://t.me/BestSuportCasino', '_blank');
 });
 document.getElementById('ownerChannel').addEventListener('click', () => {
-  const url = 'https://t.me/BestCasinoRuSSia';
-  if(window.Telegram && Telegram.WebApp && Telegram.WebApp.openLink) Telegram.WebApp.openLink(url);
-  else window.open(url, '_blank');
+  window.open('https://t.me/BestCasinoRuSSia', '_blank');
 });
 sortBy.addEventListener('change', renderInventory);
 renderCases();
@@ -1177,6 +1156,33 @@ updateUI();
 const dailyCanvas = document.getElementById('dailyCanvas');
 const dc = dailyCanvas.getContext('2d');
 drawDailyWheel(dc, dailySegments);
+
+const syntheticNames = ['Андрей','Вика','Maks','Катя','Ivan','Olga','Nikita','Сергей', nickname || 'Player'];
+const syntheticPrizes = ['10', '15', '20', '25', '50', '100', '450'];
+function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+function appendLiveEntryFromHistoryOrGenerated() {
+  if (historyEl.children.length > 0 && Math.random() < 0.5) {
+    const idx = Math.floor(Math.random() * historyEl.children.length);
+    const txt = historyEl.children[idx].textContent;
+    const parts = txt.split(' — ');
+    const realText = parts.slice(1).join(' — ') || txt;
+    addLive(realText);
+  } else {
+    const name = pick(syntheticNames);
+    const chance = Math.random();
+    let text;
+    if (chance < 0.05) {
+      text = `${name} выиграл 🎯 Точный выстрел!`;
+    } else if (chance < 0.15) {
+      text = `${name} открыл кейс и получил NFT`;
+    } else {
+      text = `${name} выиграл ${pick(syntheticPrizes)}★`;
+    }
+    addLive(text);
+  }
+}
+setInterval(appendLiveEntryFromHistoryOrGenerated, 5000);
+
 document.querySelectorAll('.tab-btn, .mobile-btn, .more-link').forEach(b => {
   b.addEventListener('click', () => {
     if(b.classList.contains('more-link')) moreModal.style.display = 'none';
@@ -1205,6 +1211,10 @@ document.addEventListener('click', e => {
   if(e.target === caseModal) {
     caseModal.querySelector('.modal-card').classList.remove('show');
     setTimeout(() => caseModal.style.display = 'none', 300);
+  }
+  if(e.target === withdrawModal) {
+    withdrawModal.querySelector('.modal-card').classList.remove('show');
+    setTimeout(() => withdrawModal.style.display = 'none', 300);
   }
   if(e.target === moreModal) {
     moreModal.querySelector('.more-modal-card').classList.remove('show');
