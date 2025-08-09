@@ -24,6 +24,10 @@ html, body {
   color: #e9f2fb;
   -webkit-font-smoothing: antialiased;
   touch-action: manipulation;
+  -ms-touch-action: manipulation;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 .container {
   max-width: 1200px;
@@ -120,6 +124,7 @@ h2 { margin: 0 0 8px 0; }
   text-align: center;
   background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.08));
 }
+.drum-item img { width: 56px; height: 56px; object-fit: contain; border-radius: 8px; }
 .badge { font-size: 12px; color: var(--muted); margin-top: 6px; }
 .marker {
   position: absolute;
@@ -200,6 +205,7 @@ h2 { margin: 0 0 8px 0; }
   opacity: 1;
 }
 .prize-icon { font-size: 56px; }
+.prize-icon img { width: 80px; height: 80px; object-fit: contain; border-radius: 8px; }
 .rarity-chip {
   display: inline-block;
   padding: 6px 10px;
@@ -404,7 +410,7 @@ h2 { margin: 0 0 8px 0; }
         <div style="display:flex;justify-content:space-between;align-items:center">
           <div>
             <h2>Рулетка</h2>
-            <div class="muted">Мин ставка 25★ (47.5₽). Шанс выигрыша ~40%.</div>
+            <div class="muted">Мин ставка 25★ (47.5₽). Шанс на особые призы низкий.</div>
           </div>
           <div class="muted">1 ★ = 1.9 ₽</div>
         </div>
@@ -557,15 +563,15 @@ h2 { margin: 0 0 8px 0; }
 </div>
 <script>
 const PRIZES = [
-  {id:'star',icon:'⭐',name:'Звезда',rarity:'common',sellStars:0.5,sellRub:0.95,desc:'Маленькая звезда.',effect:{type:'fixed',value:10},chance:0.28,marker:'+'},
-  {id:'toy',icon:'🧸',name:'Плюшевый',rarity:'common',sellStars:1,sellRub:1.9,desc:'Милый сувенир.',effect:{type:'fixed',value:20},chance:0.22,marker:'+'},
-  {id:'coin',icon:'🪙',name:'Монета',rarity:'common',sellStars:0.8,sellRub:1.52,desc:'Небольшая награда.',effect:{type:'fixed',value:15},chance:0.20,marker:'+'},
-  {id:'gem',icon:'💎',name:'Драгоценный',rarity:'rare',sellStars:8,sellRub:15.2,desc:'Редкий камень.',effect:{type:'mult',value:2},chance:0.06,marker:'+'},
-  {id:'bomb',icon:'💣',name:'Бомба',rarity:'common',sellStars:0,sellRub:0,desc:'Потеря.',effect:{type:'neg',value:10},chance:0.10,marker:'-'},
-  {id:'skull',icon:'☠️',name:'Проклятие',rarity:'rare',sellStars:0,sellRub:0,desc:'Крупная потеря.',effect:{type:'neg',value:40},chance:0.03,marker:'-'},
-  {id:'gift',icon:'🎁',name:'Подарок',rarity:'epic',sellStars:20,sellRub:38,desc:'Случайный бонус.',effect:{type:'random',values:[20,50,100]},chance:0.01,marker:'+'},
-  {id:'target',icon:'🎯',name:'Точный выстрел',rarity:'legend',sellStars:80,sellRub:152,desc:'Большой множитель!',effect:{type:'mult',value:5},chance:0.01,marker:'+'},
-  {id:'snoop',icon:'🐶',name:'Снуп Дог',rarity:'legend',sellStars:450,sellRub:855,desc:'Крутой пес!',effect:{type:'fixed',value:450},chance:0.01,marker:'+'}
+  {id:'star',icon:'⭐',name:'Звезда',rarity:'common',sellStars:0.5,sellRub:0.95,desc:'Маленькая звезда.',effect:{type:'fixed',value:10},chance:28,marker:'+'},
+  {id:'toy',icon:'🧸',name:'Плюшевый',rarity:'common',sellStars:1,sellRub:1.9,desc:'Милый сувенир.',effect:{type:'fixed',value:20},chance:22,marker:'+'},
+  {id:'coin',icon:'🪙',name:'Монета',rarity:'common',sellStars:0.8,sellRub:1.52,desc:'Небольшая награда.',effect:{type:'fixed',value:15},chance:20,marker:'+'},
+  {id:'gem',icon:'💎',name:'Драгоценный',rarity:'rare',sellStars:8,sellRub:15.2,desc:'Редкий камень.',effect:{type:'mult',value:2},chance:6,marker:'+'},
+  {id:'bomb',icon:'💣',name:'Бомба',rarity:'common',sellStars:0,sellRub:0,desc:'Потеря.',effect:{type:'neg',value:10},chance:10,marker:'-'},
+  {id:'skull',icon:'☠️',name:'Проклятие',rarity:'rare',sellStars:0,sellRub:0,desc:'Крупная потеря.',effect:{type:'neg',value:40},chance:3,marker:'-'},
+  {id:'gift',icon:'🎁',name:'Подарок',rarity:'epic',sellStars:20,sellRub:38,desc:'Случайный бонус.',effect:{type:'random',values:[20,50,100]},chance:1,marker:'+'},
+  {id:'target',icon:'🎯',name:'Точный выстрел',rarity:'legend',sellStars:80,sellRub:152,desc:'Большой множитель!',effect:{type:'mult',value:5},chance:1,marker:'+'},
+  {id:'snoop',image:'https://i.postimg.cc/JGGJWzD4/snoop.png',name:'Снуп Дог',rarity:'legend',sellStars:450,sellRub:855,desc:'Крутой пес!',effect:{type:'fixed',value:450},chance:2,marker:'+'}
 ];
 const NFTS = [
   {id:'n1',name:'NFT Арт #1',image:'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="160" height="100"><rect width="100%" height="100%" fill="%23071a28"/><text x="50%" y="50%" fill="%23fff" font-size="16" dominant-baseline="middle" text-anchor="middle">NFT Арт #1</text></svg>',sellStars:50,sellRub:95,desc:'Уникальный арт.',rarity:'rare',type:'nft',icon:'🖼️'},
@@ -619,8 +625,8 @@ if (window.Telegram && Telegram.WebApp) {
   nickname = username || firstName || 'Player';
   localStorage.setItem('nickname', nickname);
   const themeParams = Telegram.WebApp.themeParams || {};
-  document.body.style.backgroundColor = themeParams.bg_color || '#041126';
-  document.body.style.color = themeParams.text_color || '#e9f2fb';
+  document.body.style.backgroundColor = themeParams.bg_color || '';
+  document.body.style.color = themeParams.text_color || '';
 }
 function updateUI() {
   balanceEl.textContent = balance.toFixed(2) + ' ★';
@@ -641,7 +647,34 @@ function renderPrizeList() {
     d.style.padding = '6px';
     d.style.borderRadius = '8px';
     d.style.background = 'rgba(255,255,255,0.02)';
-    d.innerHTML = `<div><div style="font-weight:800">${p.name}</div><div style="font-size:12px;color:var(--muted)">${p.desc||''}</div></div><div style="text-align:right"><div style="font-weight:800">${(p.sellStars||0).toFixed(2)}★</div><div style="font-size:12px;color:var(--muted)">${(p.sellRub||0)}₽</div></div>`;
+    const left = document.createElement('div');
+    left.style.display = 'flex';
+    left.style.alignItems = 'center';
+    left.style.gap = '8px';
+    const iconWrap = document.createElement('div');
+    if(p.image) {
+      const img = document.createElement('img');
+      img.src = p.image;
+      img.style.width = '40px';
+      img.style.height = '40px';
+      img.style.objectFit = 'contain';
+      img.style.borderRadius = '6px';
+      iconWrap.appendChild(img);
+    } else {
+      const span = document.createElement('div');
+      span.textContent = p.icon || '🖼️';
+      span.style.fontSize = '20px';
+      iconWrap.appendChild(span);
+    }
+    left.appendChild(iconWrap);
+    const txt = document.createElement('div');
+    txt.innerHTML = `<div style="font-weight:800">${p.name}</div><div style="font-size:12px;color:var(--muted)">${p.desc||''}</div>`;
+    left.appendChild(txt);
+    const right = document.createElement('div');
+    right.style.textAlign = 'right';
+    right.innerHTML = `<div style="font-weight:800">${(p.sellStars||0).toFixed(2)}★</div><div style="font-size:12px;color:var(--muted)">${(p.sellRub||0)}₽</div>`;
+    d.appendChild(left);
+    d.appendChild(right);
     prizeList.appendChild(d);
   });
 }
@@ -693,7 +726,11 @@ function populateStrip(stripId, forced) {
     const el = document.createElement('div');
     el.className = 'drum-item';
     el.style.minWidth = itemW + 'px';
-    el.innerHTML = `<div style="font-size:${window.innerWidth<=720?'22px':'28px'}">${p.icon}</div><div class="badge">${p.marker} ${p.name}</div>`;
+    if(p.image) {
+      el.innerHTML = `<img src="${p.image}" alt="${p.name}" /><div class="badge">${p.marker} ${p.name}</div>`;
+    } else {
+      el.innerHTML = `<div style="font-size:${window.innerWidth<=720?'22px':'28px'}">${p.icon}</div><div class="badge">${p.marker} ${p.name}</div>`;
+    }
     strip.appendChild(el);
   }
   strip.style.width = (items.length * itemW) + 'px';
@@ -768,8 +805,8 @@ function spinStrip(opts) {
     if(balance < 0) balance = 0;
     updateUI();
     document.getElementById('spinResult').textContent = resultText;
-    addHistory(`${forced.icon} ${forced.name} — ${resultText}`);
-    addLive(`${forced.icon} ${forced.name} — ${resultText}`);
+    addHistory(`${forced.name} — ${resultText}`);
+    addLive(`${forced.name} — ${resultText}`);
     showResultModal(forced);
     if(win && ((forced.effect.type === 'fixed' && forced.effect.value >= 100) || forced.id === 'snoop')) createFireworks();
     document.getElementById(btnId).disabled = false;
@@ -778,6 +815,7 @@ function spinStrip(opts) {
     if(stripId === 'drumBottom') isSpinningBottom = false;
     populateStrip(stripId);
     if(typeof after === 'function') after();
+    localStorage.setItem('balance', balance);
   });
   document.getElementById(btnId).disabled = true;
   document.getElementById(btnId).textContent = 'Крутим...';
@@ -796,7 +834,12 @@ function spinBoth() {
 }
 let lastShown = null;
 function showResultModal(prize) {
-  modalIcon.textContent = prize.icon || '🖼️';
+  modalIcon.innerHTML = '';
+  if(prize.image) {
+    modalIcon.innerHTML = `<img src="${prize.image}" alt="${prize.name}">`;
+  } else {
+    modalIcon.textContent = prize.icon || '🖼️';
+  }
   modalName.textContent = prize.name || 'Приз';
   modalDesc.textContent = prize.desc || '';
   const rar = prize.rarity || 'common';
@@ -816,6 +859,7 @@ sellBtn.onclick = () => {
   resultModal.querySelector('.modal-card').classList.remove('show');
   setTimeout(() => resultModal.style.display = 'none', 300);
   lastShown = null;
+  localStorage.setItem('balance', balance);
 };
 keepBtn.onclick = () => {
   if(!lastShown) return;
@@ -908,6 +952,7 @@ caseSellBtn.onclick = () => {
   caseModal.querySelector('.modal-card').classList.remove('show');
   setTimeout(() => caseModal.style.display = 'none', 300);
   lastCaseShown = null;
+  localStorage.setItem('balance', balance);
 };
 caseKeepBtn.onclick = () => {
   if(!lastCaseShown) return;
@@ -969,7 +1014,6 @@ function spinDailyFlow(ctx, canvasId) {
   const targetAngle = - (targetIdx * arc + arc / 2);
   const spins = 5;
   const finalAngle = targetAngle - spins * Math.PI * 2;
-  let startAngle = 0;
   const duration = 5000;
   const startTime = performance.now();
   function animate(now) {
@@ -1025,8 +1069,9 @@ function renderInventory() {
   sorted.forEach(item => {
     const el = document.createElement('div');
     el.className = 'inventory-item';
+    const icon = item.image ? `<img src="${item.image}" style="width:40px;height:40px;object-fit:contain;border-radius:6px">` : (item.icon || '🖼️');
     el.innerHTML = `
-      <div>${item.icon || '🖼️'}</div>
+      <div style="width:44px">${icon}</div>
       <div>${item.name}</div>
       <div class="muted">${new Date(item.date).toLocaleDateString()}</div>
       <button data-id="${item.id}">Продать</button>
@@ -1043,12 +1088,13 @@ function sellInventoryItem(item) {
   updateUI();
   addHistory(`Продан из инвентаря ${item.name} за ${gained.toFixed(2)}★`);
   addLive(`Продан из инвентаря ${item.name} за ${gained.toFixed(2)}★`);
+  localStorage.setItem('balance', balance);
 }
 document.getElementById('spinTop').addEventListener('click', () => spinStrip({ stripId: 'drumTop', betInput: 'betTop', btnId: 'spinTop' }));
 document.getElementById('spinBottom').addEventListener('click', () => spinStrip({ stripId: 'drumBottom', betInput: 'betBottom', btnId: 'spinBottom' }));
 document.getElementById('bothBtn').addEventListener('click', spinBoth);
 document.getElementById('confirmDeposit').addEventListener('click', () => {
-  showNotification('Пополнение только через бота: используйте команду /deposit <сумма> в чате с ботом. После оплаты нажмите кнопку в сообщении бота, чтобы открыть приложение и обновить баланс.');
+  showNotification('Пополнение только через бота: используйте команду /deposit <сумма> в чате с ботом. После оплаты бот откроет приложение с параметрами, и баланс автоматически обновится.');
 });
 document.getElementById('requestWithdraw').addEventListener('click', () => {
   if(balance < 2000) { showNotification('Минимум 2000★ для вывода'); return; }
