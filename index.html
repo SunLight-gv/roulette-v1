@@ -1,3 +1,4 @@
+<!-- index.html -->
 <!doctype html>
 <html lang="ru">
 <head>
@@ -377,6 +378,14 @@ h2 { margin: 0 0 8px 0; }
   .modal-card { width: 92%; }
   .history-card { display: none; }
 }
+.admin-panel {
+  margin-top:12px;
+  padding:12px;
+  border-radius:8px;
+  background:rgba(255,255,255,0.03);
+}
+.admin-panel label { display:block; margin-bottom:6px; font-weight:700; }
+.admin-panel input, .admin-panel select { width:100%; padding:8px; border-radius:8px; background:var(--glass); border:1px solid rgba(255,255,255,0.03); color:white; margin-bottom:8px; }
 </style>
 </head>
 <body>
@@ -491,6 +500,9 @@ h2 { margin: 0 0 8px 0; }
         <h2>Live</h2>
         <div id="liveArea" style="min-height:80px;display:flex;flex-direction:column;gap:6px"></div>
       </div>
+
+      <div id="adminSectionContainer"></div>
+
     </div>
     <aside>
       <div class="card">
@@ -499,6 +511,7 @@ h2 { margin: 0 0 8px 0; }
           <div class="muted">Твой баланс</div>
           <div style="font-weight:900;font-size:20px;margin-top:6px" id="balanceBig">0 ★</div>
           <div class="muted" style="margin-top:6px">1 ★ = 1.9 ₽</div>
+          <div class="muted" style="margin-top:6px">Telegram ID: <span id="telegramId">—</span></div>
         </div>
       </div>
       <div class="card" style="margin-top:12px">
@@ -513,6 +526,8 @@ h2 { margin: 0 0 8px 0; }
     </aside>
   </main>
 </div>
+
+<!-- Modals (same as original) -->
 <div class="modal" id="resultModal">
   <div class="modal-card">
     <div class="prize-icon" id="modalIcon">⭐</div>
@@ -552,6 +567,7 @@ h2 { margin: 0 0 8px 0; }
     <button id="sendWithdraw" class="btn primary">Отправить</button>
   </div>
 </div>
+
 <div class="modal more-modal" id="moreModal">
   <div class="more-modal-card">
     <h2>Другие разделы</h2>
@@ -569,6 +585,122 @@ h2 { margin: 0 0 8px 0; }
   <button class="mobile-btn" id="moreBtn">Ещё</button>
 </div>
 <script>
+/* ---------- Backend-aware client ---------- */
+/* Assumes backend serves API on same origin.
+   - GET /user/{uid} -> { uid, username, first_name, last_name, balance, lives, inventory, is_admin }
+   - GET /users.json -> whole users dump (admin)
+   - POST /apply_topup?uid=&op=  -> applies pending topup operation and returns user object
+   - WebSocket /ws sends messages JSON {type:'update', uid:..., data: {...}} when user's data changes
+*/
+
+const API_ORIGIN = location.origin; // ensure backend is served from same origin
+const wsUrl = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws';
+let ws;
+let subscribedUid = null;
+let user = null;
+let adminMode = false;
+
+function q(name){ return document.querySelector(name); }
+function showNotification(message){
+  const notify = document.createElement('div');
+  notify.className = 'notify';
+  notify.textContent = message;
+  document.body.appendChild(notify);
+  setTimeout(()=>notify.classList.add('show'),10);
+  setTimeout(()=>{ notify.classList.remove('show'); setTimeout(()=>notify.remove(),300); },3000);
+}
+
+/* parse URL params */
+function param(name){ const p = new URLSearchParams(location.search); return p.get(name); }
+const urlUid = param('uid') || param('tg_uid') || null;
+const urlTopup = param('topup') || null;
+const urlOp = param('op') || null;
+if(param('admin') === '1') adminMode = true;
+
+async function apiGet(path){
+  const res = await fetch(API_ORIGIN + path, { credentials: 'include' });
+  return await res.json();
+}
+async function apiPost(path, body){
+  const res = await fetch(API_ORIGIN + path, { method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include', body: JSON.stringify(body) });
+  return await res.json();
+}
+
+async function syncWithServer(uid){
+  if(!uid) return;
+  try{
+    const u = await apiGet(`/user/${uid}`);
+    if(u && u.uid){
+      user = u;
+      subscribedUid = uid;
+      updateLocalFromServer();
+    }
+  }catch(e){ console.error(e); }
+}
+
+function updateLocalFromServer(){
+  if(!user) return;
+  const bal = parseFloat(user.balance||0);
+  document.getElementById('balance').textContent = bal.toFixed(2) + ' ★';
+  document.getElementById('balanceBig').textContent = bal.toFixed(2) + ' ★';
+  document.getElementById('nickname').textContent = user.username || user.first_name || 'Player';
+  document.getElementById('telegramId').textContent = user.uid || '—';
+  document.getElementById('lives').textContent = '❤️'.repeat(user.lives || 0);
+  renderPrizeList();
+  renderInventory();
+  renderCases();
+  if(user.is_admin) renderAdminPanel();
+}
+
+/* WebSocket */
+function connectWS(){
+  ws = new WebSocket(wsUrl);
+  ws.addEventListener('open', ()=> {
+    if(subscribedUid) ws.send(JSON.stringify({action:'subscribe', uid:subscribedUid}));
+  });
+  ws.addEventListener('message', ev => {
+    try{
+      const msg = JSON.parse(ev.data);
+      if(msg.type === 'update' && msg.uid === subscribedUid){
+        user = msg.data;
+        updateLocalFromServer();
+        showNotification('Данные обновлены');
+      }
+    }catch(e){ console.error(e); }
+  });
+  ws.addEventListener('close', ()=> setTimeout(connectWS, 1000));
+}
+connectWS();
+
+/* apply topup when came back from bot */
+(async function(){
+  if(urlUid){
+    await syncWithServer(urlUid);
+    if(ws && ws.readyState === WebSocket.OPEN && subscribedUid) {
+      ws.send(JSON.stringify({action:'subscribe', uid:subscribedUid}));
+    }
+  } else {
+    // try local fallback
+    const lsNick = localStorage.getItem('nickname');
+    if(lsNick) document.getElementById('nickname').textContent = lsNick;
+  }
+  if(urlTopup && urlOp && urlUid){
+    // call backend to apply topup (backend verifies op)
+    try{
+      const resp = await apiGet(`/apply_topup?uid=${encodeURIComponent(urlUid)}&op=${encodeURIComponent(urlOp)}`);
+      if(resp && resp.ok){
+        await syncWithServer(urlUid);
+        showNotification('Баланс обновлён');
+        const cleanUrl = location.protocol + '//' + location.host + location.pathname;
+        history.replaceState({}, '', cleanUrl);
+      } else {
+        showNotification('Ошибка применения пополнения');
+      }
+    }catch(e){ console.error(e); showNotification('Ошибка сервера'); }
+  }
+})();
+
+/* ---------- existing app logic (mostly left intact) ---------- */
 const PRIZES = [
   {id:'star',icon:'⭐',name:'Звезда',rarity:'common',sellStars:0.5,sellRub:0.95,desc:'Маленькая звезда.',effect:{type:'fixed',value:10},chance:0.28,marker:'+'},
   {id:'toy',icon:'🧸',name:'Плюшевый',rarity:'common',sellStars:1,sellRub:1.9,desc:'Милый сувенир.',effect:{type:'fixed',value:20},chance:0.22,marker:'+'},
@@ -587,15 +719,13 @@ const NFTS = [
 ];
 const dailySegments = ['10★', '15★', '20★', '25★', '50★', '100★', '150★', 'NFT'];
 const dailyProb = [0.41, 0.41, 0.05, 0.05, 0.04, 0.02, 0.01, 0.01];
-let balance = parseFloat(localStorage.getItem('balance') || '0');
-let lives = parseInt(localStorage.getItem('lives') || '3');
-let inventory = JSON.parse(localStorage.getItem('inventory') || '[]');
-let lastDailySpin = parseInt(localStorage.getItem('lastDailySpin') || '0');
+
 let isSpinningTop = false;
 let isSpinningBottom = false;
 let isSpinningDaily = false;
-let nickname = localStorage.getItem('nickname') || 'Player';
-let userId, firstName, lastName, username, languageCode, isPremium, photoUrl;
+let lastShown = null;
+let lastCaseShown = null;
+
 const balanceEl = document.getElementById('balance');
 const balanceBig = document.getElementById('balanceBig');
 const historyEl = document.getElementById('history');
@@ -619,49 +749,6 @@ const nicknameEl = document.getElementById('nickname');
 const inventoryList = document.getElementById('inventoryList');
 const sortBy = document.getElementById('sortBy');
 
-function getUrlUser() {
-  const p = new URLSearchParams(location.search);
-  if (p.get('tg_username')) return { username: p.get('tg_username'), first_name: p.get('tg_first') || '', last_name: p.get('tg_last') || '' };
-  if (p.get('username')) return { username: p.get('username'), first_name: p.get('first') || '', last_name: p.get('last') || '' };
-  return null;
-}
-const urlUser = getUrlUser();
-if (window.Telegram && Telegram.WebApp) {
-  try { Telegram.WebApp.ready(); } catch(e) {}
-  const initDataUnsafe = Telegram.WebApp.initDataUnsafe || {};
-  const user = initDataUnsafe.user || {};
-  userId = user.id || null;
-  firstName = user.first_name || '';
-  lastName = user.last_name || '';
-  username = user.username || '';
-  languageCode = user.language_code || 'en';
-  isPremium = user.is_premium || false;
-  photoUrl = user.photo_url || '';
-  nickname = username || firstName || nickname;
-  localStorage.setItem('nickname', nickname);
-  try {
-    const themeParams = Telegram.WebApp.themeParams || {};
-    if (themeParams.bg_color) document.body.style.backgroundColor = themeParams.bg_color;
-    if (themeParams.text_color) document.body.style.color = themeParams.text_color;
-  } catch(e) {}
-} else if (urlUser) {
-  username = urlUser.username || '';
-  firstName = urlUser.first_name || '';
-  lastName = urlUser.last_name || '';
-  nickname = username || firstName || nickname;
-  localStorage.setItem('nickname', nickname);
-} else {
-  nickname = localStorage.getItem('nickname') || nickname;
-}
-
-function updateUI() {
-  balanceEl.textContent = balance.toFixed(2) + ' ★';
-  balanceBig.textContent = balance.toFixed(2) + ' ★';
-  livesEl.textContent = '❤️'.repeat(lives);
-  nicknameEl.textContent = nickname;
-  renderPrizeList();
-  renderInventory();
-}
 function renderPrizeList() {
   prizeList.innerHTML = '';
   const merged = PRIZES.concat(NFTS.map(n => ({icon:'🖼️',name:n.name,desc:n.desc,sellStars:n.sellStars,sellRub:n.sellRub})));
@@ -690,16 +777,24 @@ function addLive(text) {
   liveArea.prepend(d);
   while(liveArea.children.length > 8) liveArea.removeChild(liveArea.lastChild);
 }
-function showNotification(message) {
-  const notify = document.createElement('div');
-  notify.className = 'notify';
-  notify.textContent = message;
-  document.body.appendChild(notify);
-  setTimeout(() => notify.classList.add('show'), 10);
-  setTimeout(() => {
-    notify.classList.remove('show');
-    setTimeout(() => notify.remove(), 300);
-  }, 3000);
+function createFireworks() {
+  for(let i = 0; i < 20; i++) {
+    const f = document.createElement('div');
+    f.className = 'firework';
+    const size = 8 + Math.random() * 20;
+    f.style.width = size + 'px';
+    f.style.height = size + 'px';
+    f.style.left = (20 + Math.random() * 60) + '%';
+    f.style.top = (20 + Math.random() * 60) + '%';
+    f.style.background = `hsl(${Math.random() * 360} 100% 60%)`;
+    f.style.opacity = 0.9;
+    document.body.appendChild(f);
+    setTimeout(() => {
+      f.style.transform = `translate(${(Math.random() * 400 - 200)}px,${(Math.random() * 400 - 200)}px) scale(${1 + Math.random() * 1.5})`;
+      f.style.opacity = 0;
+    }, 20);
+    setTimeout(() => f.remove(), 1200);
+  }
 }
 function chooseWeighted() {
   const sum = PRIZES.reduce((s, p) => s + (p.chance || 0), 0);
@@ -731,25 +826,6 @@ function populateStrip(stripId, forced) {
   strip.style.width = (items.length * itemW) + 'px';
   return { items, forcedIdx, itemW, wrapW };
 }
-function createFireworks() {
-  for(let i = 0; i < 20; i++) {
-    const f = document.createElement('div');
-    f.className = 'firework';
-    const size = 8 + Math.random() * 20;
-    f.style.width = size + 'px';
-    f.style.height = size + 'px';
-    f.style.left = (20 + Math.random() * 60) + '%';
-    f.style.top = (20 + Math.random() * 60) + '%';
-    f.style.background = `hsl(${Math.random() * 360} 100% 60%)`;
-    f.style.opacity = 0.9;
-    document.body.appendChild(f);
-    setTimeout(() => {
-      f.style.transform = `translate(${(Math.random() * 400 - 200)}px,${(Math.random() * 400 - 200)}px) scale(${1 + Math.random() * 1.5})`;
-      f.style.opacity = 0;
-    }, 20);
-    setTimeout(() => f.remove(), 1200);
-  }
-}
 function animateTranslate(el, start, end, duration, cb) {
   const startTime = performance.now();
   function frame(now) {
@@ -763,17 +839,20 @@ function animateTranslate(el, start, end, duration, cb) {
   }
   requestAnimationFrame(frame);
 }
-function spinStrip(opts) {
+async function spinStrip(opts) {
   const { stripId, betInput, btnId, after } = opts;
   const bet = parseFloat(document.getElementById(betInput).value || 0);
   if(!bet || bet < 25) { showNotification('Минимальная ставка — 25★'); return; }
-  if(bet > balance) { showNotification('Недостаточно средств'); return; }
+  if(!user || bet > (user.balance||0)) { showNotification('Недостаточно средств'); return; }
   if(stripId === 'drumTop' && isSpinningTop) return;
   if(stripId === 'drumBottom' && isSpinningBottom) return;
   if(stripId === 'drumTop') isSpinningTop = true;
   if(stripId === 'drumBottom') isSpinningBottom = true;
-  balance -= bet;
-  updateUI();
+
+  // locally reflect deduction and ask backend to register operation (optional)
+  user.balance = (parseFloat(user.balance||0) - bet);
+  updateLocalFromServer();
+
   const forced = chooseWeighted();
   const res = populateStrip(stripId, forced);
   const { items, forcedIdx, itemW, wrapW } = res;
@@ -786,19 +865,19 @@ function spinStrip(opts) {
     const m = currentTransform.match(/matrix\(([^)]+)\)/);
     if(m) curTx = parseFloat(m[1].split(', ')[4]);
   }
-  animateTranslate(strip, curTx, translateTarget, 5000, () => {
+  animateTranslate(strip, curTx, translateTarget, 5000, async () => {
     const win = Math.random() < 0.4;
     let resultText = '';
     if(win) {
-      if(forced.effect.type === 'fixed') { balance += forced.effect.value; resultText = `Вы получили ${forced.effect.value}★`; }
-      else if(forced.effect.type === 'mult') { const w = bet * forced.effect.value; balance += w; resultText = `Множитель x${forced.effect.value}! +${w.toFixed(2)}★`; }
-      else if(forced.effect.type === 'random') { const v = forced.effect.values[Math.floor(Math.random() * forced.effect.values.length)]; balance += v; resultText = `+${v}★`; }
+      if(forced.effect.type === 'fixed') { user.balance = (user.balance||0) + forced.effect.value; resultText = `Вы получили ${forced.effect.value}★`; }
+      else if(forced.effect.type === 'mult') { const w = bet * forced.effect.value; user.balance = (user.balance||0) + w; resultText = `Множитель x${forced.effect.value}! +${w.toFixed(2)}★`; }
+      else if(forced.effect.type === 'random') { const v = forced.effect.values[Math.floor(Math.random() * forced.effect.values.length)]; user.balance = (user.balance||0) + v; resultText = `+${v}★`; }
     } else {
       if(Math.random() < 0.5) { resultText = `Проигрыш ${bet}★`; }
-      else { const partial = Math.max(1, Math.round(bet * 0.5)); balance += partial; resultText = `Частичный возврат ${partial}★`; }
+      else { const partial = Math.max(1, Math.round(bet * 0.5)); user.balance = (user.balance||0) + partial; resultText = `Частичный возврат ${partial}★`; }
     }
-    if(balance < 0) balance = 0;
-    updateUI();
+    if(user.balance < 0) user.balance = 0;
+    updateLocalFromServer();
     document.getElementById('spinResult').textContent = resultText;
     addHistory(`${forced.icon} ${forced.name} — ${resultText}`);
     addLive(`${forced.icon} ${forced.name} — ${resultText}`);
@@ -810,6 +889,10 @@ function spinStrip(opts) {
     if(stripId === 'drumBottom') isSpinningBottom = false;
     populateStrip(stripId);
     if(typeof after === 'function') after();
+    // notify backend about local spin result (optional)
+    try{
+      if(user && user.uid) await apiPost('/client/spin', { uid: user.uid, result: resultText });
+    }catch(e){}
   });
   document.getElementById(btnId).disabled = true;
   document.getElementById(btnId).textContent = 'Крутим...';
@@ -826,7 +909,6 @@ function spinBoth() {
     spinStrip({ stripId: 'drumBottom', betInput: 'betBottom', btnId: 'spinBottom' });
   }
 }
-let lastShown = null;
 function showResultModal(prize) {
   modalIcon.textContent = prize.icon || '🖼️';
   modalName.textContent = prize.name || 'Приз';
@@ -838,28 +920,31 @@ function showResultModal(prize) {
   setTimeout(() => resultModal.querySelector('.modal-card').classList.add('show'), 10);
   lastShown = prize;
 }
-sellBtn.onclick = () => {
-  if(!lastShown) return;
+sellBtn.onclick = async () => {
+  if(!lastShown || !user) return;
   const gained = lastShown.sellStars || 0;
-  balance += gained;
-  updateUI();
+  user.balance = (user.balance||0) + gained;
+  updateLocalFromServer();
   addHistory(`Продан ${lastShown.name} за ${gained.toFixed(2)}★`);
   addLive(`Продан ${lastShown.name} за ${gained.toFixed(2)}★`);
   resultModal.querySelector('.modal-card').classList.remove('show');
   setTimeout(() => resultModal.style.display = 'none', 300);
   lastShown = null;
+  if(user && user.uid) await apiPost('/client/sell', { uid:user.uid, item:lastShown });
 };
-keepBtn.onclick = () => {
-  if(!lastShown) return;
-  inventory.push({...lastShown, date: new Date().toISOString(), type: lastShown.effect ? 'prize' : 'nft'});
-  localStorage.setItem('inventory', JSON.stringify(inventory));
+keepBtn.onclick = async () => {
+  if(!lastShown || !user) return;
+  user.inventory = user.inventory || [];
+  user.inventory.push({...lastShown, date: new Date().toISOString(), type: lastShown.effect ? 'prize' : 'nft'});
+  updateLocalFromServer();
   addHistory(`Оставлен ${lastShown.name}`);
   addLive(`Оставлен ${lastShown.name}`);
-  updateUI();
   resultModal.querySelector('.modal-card').classList.remove('show');
   setTimeout(() => resultModal.style.display = 'none', 300);
   lastShown = null;
+  if(user && user.uid) await apiPost('/client/keep', { uid:user.uid });
 };
+
 const casesData = [
   { price: 25, min: 10, max: 50 },
   { price: 50, min: 25, max: 100 },
@@ -878,11 +963,11 @@ function renderCases() {
     ctn.appendChild(el);
   });
 }
-let lastCaseShown = null;
+
 function openCase(c) {
-  if(balance < c.price) { showNotification('Недостаточно звёзд'); return; }
-  balance -= c.price;
-  updateUI();
+  if(!user || (user.balance||0) < c.price) { showNotification('Недостаточно звёзд'); return; }
+  user.balance = (user.balance||0) - c.price;
+  updateLocalFromServer();
   const isNft = Math.random() < 0.3;
   let prize;
   if(isNft) {
@@ -896,7 +981,8 @@ function openCase(c) {
   addHistory(`Открыт кейс ${c.price}★ — ${prize.name}`);
   addLive(`Открыт кейс ${c.price}★ — ${prize.name}`);
   showCaseModal(prize, c);
-  localStorage.setItem('balance', balance);
+  // notify backend about case open
+  if(user && user.uid) apiPost('/client/case', { uid:user.uid, case_price:c.price, prize:prize });
 }
 function showCaseModal(prize, c) {
   caseSellBtn.style.display = 'none';
@@ -930,28 +1016,32 @@ function spinCaseStrip(forced) {
     if (forced.sellStars >= 250) createFireworks();
   });
 }
-caseSellBtn.onclick = () => {
-  if(!lastCaseShown) return;
+caseSellBtn.onclick = async () => {
+  if(!lastCaseShown || !user) return;
   const gained = lastCaseShown.sellStars || 0;
-  balance += gained;
-  updateUI();
+  user.balance = (user.balance||0) + gained;
+  updateLocalFromServer();
   addHistory(`Продан ${lastCaseShown.name} за ${gained.toFixed(2)}★`);
   addLive(`Продан ${lastCaseShown.name} за ${gained.toFixed(2)}★`);
   caseModal.querySelector('.modal-card').classList.remove('show');
   setTimeout(() => caseModal.style.display = 'none', 300);
   lastCaseShown = null;
+  if(user && user.uid) await apiPost('/client/sell_case', { uid:user.uid });
 };
-caseKeepBtn.onclick = () => {
-  if(!lastCaseShown) return;
-  inventory.push({...lastCaseShown, date: new Date().toISOString()});
-  localStorage.setItem('inventory', JSON.stringify(inventory));
+caseKeepBtn.onclick = async () => {
+  if(!lastCaseShown || !user) return;
+  user.inventory = user.inventory || [];
+  user.inventory.push({...lastCaseShown, date: new Date().toISOString()});
+  updateLocalFromServer();
   addHistory(`Оставлен ${lastCaseShown.name}`);
   addLive(`Оставлен ${lastCaseShown.name}`);
-  updateUI();
   caseModal.querySelector('.modal-card').classList.remove('show');
   setTimeout(() => caseModal.style.display = 'none', 300);
   lastCaseShown = null;
+  if(user && user.uid) await apiPost('/client/keep_case', { uid:user.uid });
 };
+
+/* Daily wheel (same as original) */
 function drawDailyWheel(ctx, segments, angle = 0) {
   const seg = segments.length;
   const arc = Math.PI * 2 / seg;
@@ -977,7 +1067,7 @@ function drawDailyWheel(ctx, segments, angle = 0) {
   }
   ctx.restore();
 }
-function canDaily() { return Date.now() - lastDailySpin > 24 * 60 * 60 * 1000; }
+function canDaily() { return Date.now() - (localStorage.getItem('lastDailySpin')||0) > 24 * 60 * 60 * 1000; }
 function getDaily() {
   let r = Math.random();
   let s = 0;
@@ -989,11 +1079,11 @@ function getDaily() {
 }
 function spinDailyFlow(ctx, canvasId) {
   if(!canDaily()) { showNotification('Доступно раз в 24 часа'); return; }
-  if(balance < 15) { showNotification('Недостаточно (15★)'); return; }
+  if(!user || user.balance < 15) { showNotification('Недостаточно (15★)'); return; }
   if(isSpinningDaily) return;
   isSpinningDaily = true;
-  balance -= 15;
-  updateUI();
+  user.balance = (user.balance||0) - 15;
+  updateLocalFromServer();
   const prize = getDaily();
   const targetIdx = dailySegments.indexOf(prize);
   const seg = dailySegments.length;
@@ -1013,37 +1103,38 @@ function spinDailyFlow(ctx, canvasId) {
     if(t < 1) {
       requestAnimationFrame(animate);
     } else {
-      if(prize === 'nft') {
+      if(prize === 'NFT' || prize === 'nft') {
         const nft = NFTS[2];
-        inventory.push({...nft, date: new Date().toISOString()});
-        localStorage.setItem('inventory', JSON.stringify(inventory));
+        user.inventory = user.inventory || [];
+        user.inventory.push({...nft, date: new Date().toISOString()});
         addHistory(`Ежедневная — NFT ${nft.name}`);
         addLive(`Ежедневная — NFT ${nft.name}`);
         showResultModal({...nft, icon: '🖼️'});
         if(nft.sellStars >= 350) createFireworks();
       } else {
         const v = parseInt(prize, 10);
-        balance += v;
-        updateUI();
+        user.balance = (user.balance||0) + v;
         addHistory(`Ежедневная — +${v}★`);
         addLive(`Ежедневная — +${v}★`);
         if(v >= 100) createFireworks();
         showNotification(`Вы выиграли ${v}★`);
       }
-      lastDailySpin = Date.now();
-      localStorage.setItem('lastDailySpin', lastDailySpin);
-      localStorage.setItem('balance', balance);
+      localStorage.setItem('lastDailySpin', Date.now());
       isSpinningDaily = false;
       document.getElementById('dailySpinBtn').disabled = false;
       document.getElementById('dailySpinBtn').textContent = 'Крутить (15★)';
+      updateLocalFromServer();
+      if(user && user.uid) apiPost('/client/daily', { uid:user.uid, prize:prize });
     }
   }
   document.getElementById('dailySpinBtn').disabled = true;
   document.getElementById('dailySpinBtn').textContent = 'Крутим...';
   requestAnimationFrame(animate);
 }
+
+/* Inventory render and sell */
 function renderInventory() {
-  let sorted = [...inventory];
+  let sorted = [...(user && user.inventory ? user.inventory : [])];
   const sortVal = sortBy.value;
   if(sortVal === 'date') {
     sorted.sort((a,b) => new Date(b.date) - new Date(a.date));
@@ -1069,13 +1160,15 @@ function renderInventory() {
 }
 function sellInventoryItem(item) {
   const gained = item.sellStars || 0;
-  balance += gained;
-  inventory = inventory.filter(i => i.date !== item.date);
-  localStorage.setItem('inventory', JSON.stringify(inventory));
-  updateUI();
+  user.balance = (user.balance||0) + gained;
+  user.inventory = (user.inventory||[]).filter(i => i.date !== item.date);
+  updateLocalFromServer();
   addHistory(`Продан из инвентаря ${item.name} за ${gained.toFixed(2)}★`);
   addLive(`Продан из инвентаря ${item.name} за ${gained.toFixed(2)}★`);
+  if(user && user.uid) apiPost('/client/sell_inventory', { uid:user.uid, item:item });
 }
+
+/* events and UI wiring */
 document.getElementById('spinTop').addEventListener('click', () => spinStrip({ stripId: 'drumTop', betInput: 'betTop', btnId: 'spinTop' }));
 document.getElementById('spinBottom').addEventListener('click', () => spinStrip({ stripId: 'drumBottom', betInput: 'betBottom', btnId: 'spinBottom' }));
 document.getElementById('bothBtn').addEventListener('click', spinBoth);
@@ -1083,62 +1176,38 @@ document.getElementById('confirmDeposit').addEventListener('click', () => {
   showNotification('Пополнение только через бота: используйте команду /deposit <сумма> в чате с ботом. После оплаты нажмите кнопку в сообщении бота, чтобы открыть приложение и обновить баланс.');
 });
 document.getElementById('requestWithdraw').addEventListener('click', () => {
-  if(balance < 2000) { showNotification('Минимум 2000★ для вывода'); return; }
+  if(!user || user.balance < 2000) { showNotification('Минимум 2000★ для вывода'); return; }
   withdrawModal.style.display = 'flex';
   setTimeout(() => withdrawModal.querySelector('.modal-card').classList.add('show'), 10);
 });
-document.getElementById('sendWithdraw').addEventListener('click', () => {
+document.getElementById('sendWithdraw').addEventListener('click', async () => {
   const amount = parseFloat(document.getElementById('withdrawAmount').value);
   const system = document.getElementById('paymentSystem').value;
   const details = document.getElementById('accountDetails').value;
-  if(isNaN(amount) || amount < 2000 || amount > balance || !details.trim()) {
+  if(isNaN(amount) || amount < 2000 || amount > (user.balance||0) || !details.trim()) {
     showNotification('Неверные данные');
     return;
   }
-  const withdrawPayload = {
-    action: 'withdraw_request',
-    amount: amount,
-    payment_system: system,
-    account_details: details,
-    user_id: userId,
-    username: username,
-    first_name: firstName,
-    last_name: lastName,
-    language_code: languageCode,
-    is_premium: isPremium,
-    photo_url: photoUrl,
-    client_nickname: nickname,
-    ts: Date.now()
-  };
-  if(window.Telegram && Telegram.WebApp && Telegram.WebApp.sendData) {
-    try {
-      Telegram.WebApp.sendData(JSON.stringify(withdrawPayload));
-      showNotification('Запрос на вывод отправлен через Telegram бота');
+  // send withdraw request to backend which will forward to admin
+  try{
+    const resp = await apiPost('/client/withdraw', { uid:user.uid, amount:amount, payment_system:system, account_details:details });
+    if(resp && resp.ok){
+      showNotification('Запрос на вывод отправлен');
       addHistory(`Запрос на вывод ${amount}★`);
-    } catch (e) {
-      const pending = JSON.parse(localStorage.getItem('pendingWithdraws') || '[]');
-      pending.push(withdrawPayload);
-      localStorage.setItem('pendingWithdraws', JSON.stringify(pending));
-      showNotification('Ошибка отправки через Telegram. Запрос сохранён локально.');
-      addHistory(`Локальный запрос на вывод ${amount}★`);
-    }
-  } else {
-    const pending = JSON.parse(localStorage.getItem('pendingWithdraws') || '[]');
-    pending.push(withdrawPayload);
-    localStorage.setItem('pendingWithdraws', JSON.stringify(pending));
-    showNotification('Запрос сохранён локально. Откройте бота и используйте команду для вывода или отправьте реквизиты в чат с поддержкой.');
-    addHistory(`Локальный запрос на вывод ${amount}★`);
-  }
-  withdrawModal.querySelector('.modal-card').classList.remove('show');
-  setTimeout(() => withdrawModal.style.display = 'none', 300);
+      user.balance = (user.balance||0) - amount;
+      updateLocalFromServer();
+      withdrawModal.querySelector('.modal-card').classList.remove('show');
+      setTimeout(() => withdrawModal.style.display = 'none', 300);
+    } else showNotification('Ошибка');
+  }catch(e){ showNotification('Ошибка сервера'); }
 });
-document.getElementById('buyLife').addEventListener('click', () => {
-  if(balance < 50) { showNotification('Нужно 50★'); return; }
-  balance -= 50;
-  lives += 1;
-  localStorage.setItem('lives', lives);
-  updateUI();
+document.getElementById('buyLife').addEventListener('click', async () => {
+  if(!user || user.balance < 50) { showNotification('Нужно 50★'); return; }
+  user.balance = (user.balance||0) - 50;
+  user.lives = (user.lives||0) + 1;
   addHistory('Куплена жизнь');
+  updateLocalFromServer();
+  if(user && user.uid) await apiPost('/client/buy_life', { uid:user.uid });
 });
 document.getElementById('dailySpinBtn').addEventListener('click', () => spinDailyFlow(document.getElementById('dailyCanvas').getContext('2d'), 'dailyCanvas'));
 document.getElementById('supportChannel').addEventListener('click', () => {
@@ -1152,12 +1221,10 @@ document.getElementById('ownerChannel').addEventListener('click', () => {
 });
 sortBy.addEventListener('change', renderInventory);
 renderCases();
-updateUI();
-const dailyCanvas = document.getElementById('dailyCanvas');
-const dc = dailyCanvas.getContext('2d');
-drawDailyWheel(dc, dailySegments);
+drawDailyWheel(document.getElementById('dailyCanvas').getContext('2d'), dailySegments);
 
-const syntheticNames = ['Андрей','Вика','Maks','Катя','Ivan','Olga','Nikita','Сергей', nickname || 'Player'];
+/* live generator */
+const syntheticNames = ['Андрей','Вика','Maks','Катя','Ivan','Olga','Nikita','Сергей', 'Player'];
 const syntheticPrizes = ['10', '15', '20', '25', '50', '100', '450'];
 function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 function appendLiveEntryFromHistoryOrGenerated() {
@@ -1183,6 +1250,7 @@ function appendLiveEntryFromHistoryOrGenerated() {
 }
 setInterval(appendLiveEntryFromHistoryOrGenerated, 5000);
 
+/* tabs */
 document.querySelectorAll('.tab-btn, .mobile-btn, .more-link').forEach(b => {
   b.addEventListener('click', () => {
     if(b.classList.contains('more-link')) moreModal.style.display = 'none';
@@ -1224,31 +1292,48 @@ document.addEventListener('click', e => {
 window.addEventListener('resize', () => {
   populateStrip('drumTop');
   populateStrip('drumBottom');
-  drawDailyWheel(dc, dailySegments);
+  drawDailyWheel(document.getElementById('dailyCanvas').getContext('2d'), dailySegments);
 });
-localStorage.setItem('balance', balance);
-localStorage.setItem('nickname', nickname);
-(function(){
-  const params = new URLSearchParams(location.search);
-  if(params.has('topup') && params.has('uid') && window.Telegram && Telegram.WebApp) {
-    const topup = parseFloat(params.get('topup')) || 0;
-    const uid = params.get('uid');
-    const initDataUnsafe = Telegram.WebApp.initDataUnsafe || {};
-    const user = initDataUnsafe.user || {};
-    if(String(user.id) === String(uid) && topup > 0) {
-      balance += topup;
-      localStorage.setItem('balance', balance);
-      updateUI();
-      addHistory(`Пополнение через бот +${topup}★`);
-      addLive(`Пополнение через бот +${topup}★`);
-      showNotification(`Баланс пополнен +${topup}★`);
-      const cleanUrl = location.protocol + '//' + location.host + location.pathname;
-      history.replaceState({}, '', cleanUrl);
-    }
-  }
-})();
-document.addEventListener('touchstart', function(e){ if(e.touches && e.touches.length > 1) e.preventDefault(); }, {passive:false});
-document.addEventListener('gesturestart', function(e){ e.preventDefault(); });
+
+/* admin panel rendering - visible only when server says user.is_admin */
+function renderAdminPanel(){
+  if(!user || !user.is_admin) return;
+  const container = document.getElementById('adminSectionContainer');
+  container.innerHTML = `
+    <div class="card admin-panel" id="adminPanel">
+      <h2>Админ панель</h2>
+      <label>Выдать звёзды пользователю (telegram id)</label>
+      <input id="adminTargetUid" placeholder="uid"/>
+      <input id="adminAmount" placeholder="количество ★" />
+      <button id="adminGrantBtn" class="btn primary">Выдать</button>
+      <div style="height:8px"></div>
+      <label>Поиск операции (revid)</label>
+      <input id="adminOpId" placeholder="operation id" />
+      <button id="adminRevidBtn" class="btn">Выполнить /revid</button>
+      <div id="adminResult" style="margin-top:8px;color:var(--muted)"></div>
+    </div>
+  `;
+  document.getElementById('adminGrantBtn').addEventListener('click', async ()=>{
+    const target = document.getElementById('adminTargetUid').value.trim();
+    const amount = parseFloat(document.getElementById('adminAmount').value);
+    if(!target || isNaN(amount)) { showNotification('Неверные данные'); return; }
+    const resp = await apiPost('/admin/grant', { target_uid: target, amount: amount });
+    if(resp && resp.ok){ showNotification('Выдано'); } else showNotification('Ошибка');
+  });
+  document.getElementById('adminRevidBtn').addEventListener('click', async ()=>{
+    const op = document.getElementById('adminOpId').value.trim();
+    if(!op){ showNotification('Введите id операции'); return; }
+    const resp = await apiPost('/admin/revid', { op_id: op });
+    document.getElementById('adminResult').textContent = JSON.stringify(resp||{}, null, 0);
+  });
+}
+
+/* small helper to notify backend of client presence */
+async function clientPing(){
+  if(user && user.uid) await apiPost('/client/ping', { uid: user.uid, ts: Date.now() });
+}
+setInterval(clientPing, 30_000);
+
 </script>
 </body>
 </html>
