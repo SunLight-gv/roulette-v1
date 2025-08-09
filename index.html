@@ -601,7 +601,6 @@ function showNotification(message){
 }
 
 function param(name){ const p = new URLSearchParams(location.search); return p.get(name); }
-const urlUid = param('uid') || param('tg_uid') || null;
 const urlTopup = param('topup') || null;
 const urlOp = param('op') || null;
 if(param('admin') === '1') adminMode = true;
@@ -615,16 +614,29 @@ async function apiPost(path, body){
   return await res.json();
 }
 
-async function syncWithServer(uid){
-  if(!uid) return;
+async function authWebApp(){
+  const initData = Telegram.WebApp.initData;
+  if(!initData) {
+    showNotification('Not in WebApp');
+    return;
+  }
+  const formData = new URLSearchParams();
+  formData.append('_auth', initData);
   try{
-    const u = await apiGet(`/user/${uid}`);
-    if(u && u.uid){
-      user = u;
-      subscribedUid = uid;
+    const resp = await fetch('/check_data', {method: 'POST', body: formData});
+    const json = await resp.json();
+    if(json.ok){
+      user = json.data;
+      subscribedUid = user.uid;
       updateLocalFromServer();
+      connectWS();
+    } else {
+      showNotification('Auth failed');
     }
-  }catch(e){ console.error(e); }
+  }catch(e){
+    console.error(e);
+    showNotification('Server error');
+  }
 }
 
 function updateLocalFromServer(){
@@ -632,7 +644,7 @@ function updateLocalFromServer(){
   const bal = parseFloat(user.balance||0);
   document.getElementById('balance').textContent = bal.toFixed(2) + ' ★';
   document.getElementById('balanceBig').textContent = bal.toFixed(2) + ' ★';
-  document.getElementById('nickname').textContent = user.username || user.first_name || 'Player';
+  document.getElementById('nickname').textContent = user.first_name || user.username || 'Player';
   document.getElementById('telegramId').textContent = user.uid || '—';
   document.getElementById('lives').textContent = '❤️'.repeat(user.lives || 0);
   renderPrizeList();
@@ -658,31 +670,10 @@ function connectWS(){
   });
   ws.addEventListener('close', ()=> setTimeout(connectWS, 1000));
 }
-connectWS();
 
 (async function(){
-  if(urlUid){
-    await syncWithServer(urlUid);
-    if(ws && ws.readyState === WebSocket.OPEN && subscribedUid) {
-      ws.send(JSON.stringify({action:'subscribe', uid:subscribedUid}));
-    }
-  } else {
-    const lsNick = localStorage.getItem('nickname');
-    if(lsNick) document.getElementById('nickname').textContent = lsNick;
-  }
-  if(urlTopup && urlOp && urlUid){
-    try{
-      const resp = await apiGet(`/apply_topup?uid=${encodeURIComponent(urlUid)}&op=${encodeURIComponent(urlOp)}`);
-      if(resp && resp.ok){
-        await syncWithServer(urlUid);
-        showNotification('Баланс обновлён');
-        const cleanUrl = location.protocol + '//' + location.host + location.pathname;
-        history.replaceState({}, '', cleanUrl);
-      } else {
-        showNotification('Ошибка применения пополнения');
-      }
-    }catch(e){ console.error(e); showNotification('Ошибка сервера'); }
-  }
+  Telegram.WebApp.ready();
+  await authWebApp();
 })();
 
 const PRIZES = [
@@ -896,7 +887,7 @@ function showResultModal(prize) {
   modalName.textContent = prize.name || 'Приз';
   modalDesc.textContent = prize.desc || '';
   const rar = prize.rarity || 'common';
-  modalRarity.innerHTML = `<span class="rarity-chip ${rar === 'legend' ? 'r-legend' : rar === 'epic' ? 'r-epic' : rar === 'rare' ? 'r-rare' : 'r-common'}">${(rar || 'COMMON').toString().toUpperCase()}</span>`;
+  modalRarity.innerHTML = `<span class="rarity-chip ${rar === 'legend' ? 'r-legend' : rar === 'epic' ? 'r-epic' : rar === 'rare' ? 'r-rare' : 'r-common'}">${(rar || 'COMMON').toUpperCase()}</span>`;
   sellBtn.textContent = `Продать за ${(prize.sellRub || 0).toFixed(2)}₽ / ${(prize.sellStars || 0).toFixed(2)}★`;
   resultModal.style.display = 'flex';
   setTimeout(() => resultModal.querySelector('.modal-card').classList.add('show'), 10);
@@ -952,12 +943,11 @@ function openCase(c) {
   updateLocalFromServer();
   const isNft = Math.random() < 0.3;
   let prize;
-  if(isNft) {
-    prize = NFTS[Math.floor(Math.random() * NFTS.length)];
+  if(isNft){
+    prize = NFTS[Math.floor(Math.random()*NFTS.length)];
+  }else{
+    prize = chooseWeighted();
     prize.marker = '+';
-  } else {
-    const win = Math.floor(Math.random() * (c.max - c.min + 1)) + c.min;
-    prize = {icon: '⭐', name: `${win}★`, desc: 'Звёзды', sellStars: win, sellRub: win * 1.9, rarity: 'common', type: 'stars', effect: {type: 'fixed', value: win}, marker: '+'};
   }
   lastCaseShown = prize;
   addHistory(`Открыт кейс ${c.price}★ — ${prize.name}`);
@@ -1167,7 +1157,7 @@ document.getElementById('sendWithdraw').addEventListener('click', async () => {
     return;
   }
   try{
-    const resp = await apiPost('/client/withdraw', { uid:user.uid, amount:amount, payment_system:system, account_details:details });
+    const resp = await apiPost('/client/withdraw', { init_data: Telegram.WebApp.initData, amount:amount, payment_system:system, account_details:details });
     if(resp && resp.ok){
       showNotification('Запрос на вывод отправлен');
       addHistory(`Запрос на вывод ${amount}★`);
@@ -1301,7 +1291,6 @@ function renderAdminPanel(){
     document.getElementById('adminResult').textContent = JSON.stringify(resp||{}, null, 0);
   });
 }
-
 async function clientPing(){
   if(user && user.uid) await apiPost('/client/ping', { uid: user.uid, ts: Date.now() });
 }
