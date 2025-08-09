@@ -379,6 +379,7 @@ h2 { margin: 0 0 8px 0; }
 </style>
 </head>
 <body>
+<audio id="bgMusic" autoplay loop src="music.mp3"></audio>
 <div class="container">
   <header>
     <div class="title">🎰 Best Casino</div>
@@ -573,13 +574,10 @@ const NFTS = [
 ];
 const dailySegments = ['10★', '15★', '20★', '25★', '50★', '100★', '150★', 'NFT'];
 const dailyProb = [0.41, 0.41, 0.05, 0.05, 0.04, 0.02, 0.01, 0.01];
-let balance = parseFloat(localStorage.getItem('balance') || '1000');
+let balance = parseFloat(localStorage.getItem('balance') || '0');
 let lives = parseInt(localStorage.getItem('lives') || '3');
 let inventory = JSON.parse(localStorage.getItem('inventory') || '[]');
 let lastDailySpin = parseInt(localStorage.getItem('lastDailySpin') || '0');
-let isSpinningTop = false;
-let isSpinningBottom = false;
-let isSpinningDaily = false;
 let nickname = localStorage.getItem('nickname') || 'Player';
 const balanceEl = document.getElementById('balance');
 const balanceBig = document.getElementById('balanceBig');
@@ -602,6 +600,15 @@ const moreModal = document.getElementById('moreModal');
 const nicknameEl = document.getElementById('nickname');
 const inventoryList = document.getElementById('inventoryList');
 const sortBy = document.getElementById('sortBy');
+if (window.Telegram && Telegram.WebApp) {
+  Telegram.WebApp.ready();
+  const user = Telegram.WebApp.initDataUnsafe.user;
+  if (user) {
+    nickname = user.username || user.first_name || 'Player';
+    localStorage.setItem('nickname', nickname);
+  }
+}
+document.getElementById('bgMusic').volume = 0.2;
 function updateUI() {
   balanceEl.textContent = balance.toFixed(2) + ' ★';
   balanceBig.textContent = balance.toFixed(2) + ' ★';
@@ -758,6 +765,7 @@ function spinStrip(opts) {
     if(stripId === 'drumBottom') isSpinningBottom = false;
     populateStrip(stripId);
     if(typeof after === 'function') after();
+    localStorage.setItem('balance', balance);
   });
   document.getElementById(btnId).disabled = true;
   document.getElementById(btnId).textContent = 'Крутим...';
@@ -961,7 +969,7 @@ function spinDailyFlow(ctx, canvasId) {
     if(t < 1) {
       requestAnimationFrame(animate);
     } else {
-      if(prize === 'nft') {
+      if(prize === 'NFT') {
         const nft = NFTS[2];
         inventory.push({...nft, date: new Date().toISOString()});
         localStorage.setItem('inventory', JSON.stringify(inventory));
@@ -1030,11 +1038,7 @@ document.getElementById('bothBtn').addEventListener('click', spinBoth);
 document.getElementById('confirmDeposit').addEventListener('click', () => {
   const s = parseFloat(document.getElementById('depositAmount').value || 0);
   if(!s || s < 25) { showNotification('Минимум пополнения — 25★'); return; }
-  balance += s;
-  localStorage.setItem('balance', balance);
-  updateUI();
-  addHistory(`Пополнение +${s.toFixed(2)}★ (${(s * 1.9).toFixed(2)}₽)`);
-  addLive(`Пополнение +${s.toFixed(2)}★`);
+  showNotification('Для пополнения используйте команду /deposit ' + s + ' в чате с ботом.');
   document.getElementById('depositRub').textContent = (s * 1.9).toFixed(2) + ' ₽';
 });
 document.getElementById('requestWithdraw').addEventListener('click', () => {
