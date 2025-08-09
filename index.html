@@ -256,29 +256,48 @@ h2 { margin: 0 0 8px 0; }
 .mobile-nav {
   display: none;
   position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 100%;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
   z-index: 500;
-  background: var(--glass);
-  padding: 6px;
-  border-radius: var(--radius) var(--radius) 0 0;
-  box-shadow: 0 -12px 40px rgba(0,0,0,0.6);
+  background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
+  padding: 8px;
+  border-radius: 20px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.7), inset 0 0 10px rgba(255,255,255,0.05);
   display: flex;
   justify-content: space-around;
-  gap: 4px;
+  gap: 6px;
+  backdrop-filter: blur(10px);
 }
 .mobile-btn {
-  padding: 6px 10px;
-  border-radius: 8px;
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+.mobile-btn.active {
   background: linear-gradient(90deg, var(--accent1), var(--accent2));
   color: white;
-  font-weight: 700;
-  border: none;
-  font-size: 16px;
-  cursor: pointer;
-  min-width: 80px;
-  text-align: center;
+  box-shadow: 0 6px 20px rgba(255,90,90,0.2);
+}
+.mobile-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.3s ease;
+}
+.mobile-btn:hover::before {
+  left: 100%;
 }
 .notify {
   position: fixed;
@@ -470,7 +489,7 @@ h2 { margin: 0 0 8px 0; }
         <div class="muted">Минимум пополнения — 25★</div>
         <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
           <input id="depositAmount" class="input" style="padding:10px;border-radius:10px;background:var(--glass);border:1px solid rgba(255,255,255,0.03);color:white;width:160px" type="number" placeholder="Сумма в ★" value="25" min="25" />
-            <button id="confirmDeposit" class="btn primary">Пополнить</button>
+          <button id="confirmDeposit" class="btn primary">Пополнить</button>
           <div class="muted" id="depositRub">0 ₽</div>
         </div>
       </div>
@@ -551,9 +570,9 @@ h2 { margin: 0 0 8px 0; }
   </div>
 </div>
 <div class="mobile-nav" id="mobileNav">
-  <button class="mobile-btn" data-tab="roulette">Рулетка</button>
-  <button class="mobile-btn" data-tab="inventory">Инвентарь</button>
-  <button class="mobile-btn" id="moreBtn">Ещё</button>
+  <button class="mobile-btn active" data-tab="roulette">🎰 Рулетка</button>
+  <button class="mobile-btn" data-tab="inventory">🎒 Инвентарь</button>
+  <button class="mobile-btn" id="moreBtn">⋯ Ещё</button>
 </div>
 <script>
 const PRIZES = [
@@ -578,7 +597,7 @@ let balance = parseFloat(localStorage.getItem('balance') || '0');
 let lives = parseInt(localStorage.getItem('lives') || '3');
 let inventory = JSON.parse(localStorage.getItem('inventory') || '[]');
 let lastDailySpin = parseInt(localStorage.getItem('lastDailySpin') || '0');
-let nickname = localStorage.getItem('nickname') || 'Player';
+let nickname = 'Player';
 const balanceEl = document.getElementById('balance');
 const balanceBig = document.getElementById('balanceBig');
 const historyEl = document.getElementById('history');
@@ -600,6 +619,11 @@ const moreModal = document.getElementById('moreModal');
 const nicknameEl = document.getElementById('nickname');
 const inventoryList = document.getElementById('inventoryList');
 const sortBy = document.getElementById('sortBy');
+let isSpinningTop = false;
+let isSpinningBottom = false;
+let isSpinningDaily = false;
+
+// Инициализация Telegram Web App
 if (window.Telegram && Telegram.WebApp) {
   Telegram.WebApp.ready();
   const user = Telegram.WebApp.initDataUnsafe.user;
@@ -607,8 +631,25 @@ if (window.Telegram && Telegram.WebApp) {
     nickname = user.username || user.first_name || 'Player';
     localStorage.setItem('nickname', nickname);
   }
+  Telegram.WebApp.onEvent('invoiceClosed', (data) => {
+    if (data.status === 'paid') {
+      const amount = parseInt(data.payload.split('_')[1], 10);
+      balance += amount;
+      localStorage.setItem('balance', balance);
+      updateUI();
+      showNotification(`Пополнение успешно! Добавлено ${amount} ★`);
+      addHistory(`Пополнение на ${amount} ★`);
+      addLive(`Пополнение на ${amount} ★`);
+    } else if (data.status === 'cancelled') {
+      showNotification('Платеж отменен');
+    } else if (data.status === 'failed') {
+      showNotification('Ошибка платежа');
+    }
+  });
 }
+
 document.getElementById('bgMusic').volume = 0.2;
+
 function updateUI() {
   balanceEl.textContent = balance.toFixed(2) + ' ★';
   balanceBig.textContent = balance.toFixed(2) + ' ★';
@@ -617,6 +658,7 @@ function updateUI() {
   renderPrizeList();
   renderInventory();
 }
+
 function renderPrizeList() {
   prizeList.innerHTML = '';
   const merged = PRIZES.concat(NFTS.map(n => ({icon:'🖼️',name:n.name,desc:n.desc,sellStars:n.sellStars,sellRub:n.sellRub})));
@@ -632,12 +674,14 @@ function renderPrizeList() {
     prizeList.appendChild(d);
   });
 }
+
 function addHistory(text) {
   const div = document.createElement('div');
   div.className = 'hist-item';
   div.textContent = new Date().toLocaleTimeString() + ' — ' + text;
   historyEl.prepend(div);
 }
+
 function addLive(text) {
   const d = document.createElement('div');
   d.className = 'hist-item';
@@ -645,6 +689,7 @@ function addLive(text) {
   liveArea.prepend(d);
   while(liveArea.children.length > 8) liveArea.removeChild(liveArea.lastChild);
 }
+
 function showNotification(message) {
   const notify = document.createElement('div');
   notify.className = 'notify';
@@ -656,6 +701,7 @@ function showNotification(message) {
     setTimeout(() => notify.remove(), 300);
   }, 3000);
 }
+
 function chooseWeighted() {
   const sum = PRIZES.reduce((s, p) => s + (p.chance || 0), 0);
   let r = Math.random() * sum;
@@ -665,6 +711,7 @@ function chooseWeighted() {
   }
   return PRIZES[0];
 }
+
 function populateStrip(stripId, forced) {
   const strip = document.getElementById(stripId);
   strip.innerHTML = '';
@@ -686,6 +733,7 @@ function populateStrip(stripId, forced) {
   strip.style.width = (items.length * itemW) + 'px';
   return { items, forcedIdx, itemW, wrapW };
 }
+
 function createFireworks() {
   for(let i = 0; i < 20; i++) {
     const f = document.createElement('div');
@@ -705,6 +753,7 @@ function createFireworks() {
     setTimeout(() => f.remove(), 1200);
   }
 }
+
 function animateTranslate(el, start, end, duration, cb) {
   const startTime = performance.now();
   function frame(now) {
@@ -718,6 +767,7 @@ function animateTranslate(el, start, end, duration, cb) {
   }
   requestAnimationFrame(frame);
 }
+
 function spinStrip(opts) {
   const { stripId, betInput, btnId, after } = opts;
   const bet = parseFloat(document.getElementById(betInput).value || 0);
@@ -763,13 +813,14 @@ function spinStrip(opts) {
     document.getElementById(btnId).textContent = (btnId === 'spinTop' ? 'Крутить верх' : btnId === 'spinBottom' ? 'Крутить низ' : 'Крутить');
     if(stripId === 'drumTop') isSpinningTop = false;
     if(stripId === 'drumBottom') isSpinningBottom = false;
-    populateStrip(stripId);
+    document.getElementById(stripId).innerHTML = ''; // Очищаем барабан после спина
     if(typeof after === 'function') after();
     localStorage.setItem('balance', balance);
   });
   document.getElementById(btnId).disabled = true;
   document.getElementById(btnId).textContent = 'Крутим...';
 }
+
 function spinBoth() {
   const topBet = parseFloat(document.getElementById('betTop').value || 0);
   const botBet = parseFloat(document.getElementById('betBottom').value || 0);
@@ -782,6 +833,7 @@ function spinBoth() {
     spinStrip({ stripId: 'drumBottom', betInput: 'betBottom', btnId: 'spinBottom' });
   }
 }
+
 let lastShown = null;
 function showResultModal(prize) {
   modalIcon.textContent = prize.icon || '🖼️';
@@ -794,6 +846,7 @@ function showResultModal(prize) {
   setTimeout(() => resultModal.querySelector('.modal-card').classList.add('show'), 10);
   lastShown = prize;
 }
+
 sellBtn.onclick = () => {
   if(!lastShown) return;
   const gained = lastShown.sellStars || 0;
@@ -805,6 +858,7 @@ sellBtn.onclick = () => {
   setTimeout(() => resultModal.style.display = 'none', 300);
   lastShown = null;
 };
+
 keepBtn.onclick = () => {
   if(!lastShown) return;
   inventory.push({...lastShown, date: new Date().toISOString(), type: lastShown.effect ? 'prize' : 'nft'});
@@ -816,6 +870,7 @@ keepBtn.onclick = () => {
   setTimeout(() => resultModal.style.display = 'none', 300);
   lastShown = null;
 };
+
 const casesData = [
   { price: 25, min: 10, max: 50 },
   { price: 50, min: 25, max: 100 },
@@ -823,6 +878,7 @@ const casesData = [
   { price: 500, min: 250, max: 700 },
   { price: 1000, min: 700, max: 1500 }
 ];
+
 function renderCases() {
   const ctn = document.getElementById('casesContainer');
   ctn.innerHTML = '';
@@ -834,6 +890,7 @@ function renderCases() {
     ctn.appendChild(el);
   });
 }
+
 let lastCaseShown = null;
 function openCase(c) {
   if(balance < c.price) { showNotification('Недостаточно звёзд'); return; }
@@ -854,6 +911,7 @@ function openCase(c) {
   showCaseModal(prize, c);
   localStorage.setItem('balance', balance);
 }
+
 function showCaseModal(prize, c) {
   caseSellBtn.style.display = 'none';
   caseKeepBtn.style.display = 'none';
@@ -864,6 +922,7 @@ function showCaseModal(prize, c) {
     spinCaseStrip(prize);
   }, 10);
 }
+
 function spinCaseStrip(forced) {
   const stripId = 'caseDrum';
   const res = populateStrip(stripId, forced);
@@ -884,8 +943,10 @@ function spinCaseStrip(forced) {
     caseSellBtn.style.display = 'block';
     caseKeepBtn.style.display = 'block';
     if (forced.sellStars >= 250) createFireworks();
+    document.getElementById(stripId).innerHTML = ''; // Очищаем барабан после спина
   });
 }
+
 caseSellBtn.onclick = () => {
   if(!lastCaseShown) return;
   const gained = lastCaseShown.sellStars || 0;
@@ -897,6 +958,7 @@ caseSellBtn.onclick = () => {
   setTimeout(() => caseModal.style.display = 'none', 300);
   lastCaseShown = null;
 };
+
 caseKeepBtn.onclick = () => {
   if(!lastCaseShown) return;
   inventory.push({...lastCaseShown, date: new Date().toISOString()});
@@ -908,6 +970,7 @@ caseKeepBtn.onclick = () => {
   setTimeout(() => caseModal.style.display = 'none', 300);
   lastCaseShown = null;
 };
+
 function drawDailyWheel(ctx, segments, angle = 0) {
   const seg = segments.length;
   const arc = Math.PI * 2 / seg;
@@ -933,7 +996,9 @@ function drawDailyWheel(ctx, segments, angle = 0) {
   }
   ctx.restore();
 }
+
 function canDaily() { return Date.now() - lastDailySpin > 24 * 60 * 60 * 1000; }
+
 function getDaily() {
   let r = Math.random();
   let s = 0;
@@ -943,6 +1008,7 @@ function getDaily() {
   }
   return dailySegments[dailySegments.length - 1];
 }
+
 function spinDailyFlow(ctx, canvasId) {
   if(!canDaily()) { showNotification('Доступно раз в 24 часа'); return; }
   if(balance < 15) { showNotification('Недостаточно (15★)'); return; }
@@ -998,6 +1064,7 @@ function spinDailyFlow(ctx, canvasId) {
   document.getElementById('dailySpinBtn').textContent = 'Крутим...';
   requestAnimationFrame(animate);
 }
+
 function renderInventory() {
   let sorted = [...inventory];
   const sortVal = sortBy.value;
@@ -1023,6 +1090,7 @@ function renderInventory() {
     inventoryList.appendChild(el);
   });
 }
+
 function sellInventoryItem(item) {
   const gained = item.sellStars || 0;
   balance += gained;
@@ -1032,13 +1100,20 @@ function sellInventoryItem(item) {
   addHistory(`Продан из инвентаря ${item.name} за ${gained.toFixed(2)}★`);
   addLive(`Продан из инвентаря ${item.name} за ${gained.toFixed(2)}★`);
 }
+
 document.getElementById('spinTop').addEventListener('click', () => spinStrip({ stripId: 'drumTop', betInput: 'betTop', btnId: 'spinTop' }));
 document.getElementById('spinBottom').addEventListener('click', () => spinStrip({ stripId: 'drumBottom', betInput: 'betBottom', btnId: 'spinBottom' }));
 document.getElementById('bothBtn').addEventListener('click', spinBoth);
 document.getElementById('confirmDeposit').addEventListener('click', () => {
   const s = parseFloat(document.getElementById('depositAmount').value || 0);
   if(!s || s < 25) { showNotification('Минимум пополнения — 25★'); return; }
-  showNotification('Для пополнения используйте команду /deposit ' + s + ' в чате с ботом.');
+  if(!window.Telegram || !Telegram.WebApp) {
+    showNotification('Пополнение доступно только через Telegram Web App');
+    return;
+  }
+  Telegram.WebApp.openInvoice(`https://t.me/$BotFather/deposit_${s}`, (status) => {
+    // Обработчик закрытия счета обрабатывается через Telegram.WebApp.onEvent('invoiceClosed')
+  });
   document.getElementById('depositRub').textContent = (s * 1.9).toFixed(2) + ' ₽';
 });
 document.getElementById('requestWithdraw').addEventListener('click', () => {
@@ -1099,8 +1174,8 @@ document.addEventListener('click', e => {
   }
 });
 window.addEventListener('resize', () => {
-  populateStrip('drumTop');
-  populateStrip('drumBottom');
+  document.getElementById('drumTop').innerHTML = '';
+  document.getElementById('drumBottom').innerHTML = '';
   drawDailyWheel(dc, dailySegments);
 });
 localStorage.setItem('balance', balance);
